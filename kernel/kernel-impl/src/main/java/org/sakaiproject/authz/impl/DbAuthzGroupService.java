@@ -625,9 +625,9 @@ public abstract class DbAuthzGroupService extends BaseAuthzGroupService implemen
 	 * transform a Map<String, MemberWithRoleId> object into a Map<String, Member> object
 	 * KNL-1037
 	 */
-	private Map<String, Member> getMemberMap(Map<String, MemberWithRoleId> mMap, Map<?,?> roleMap)
+	private Map<String, BaseMember> getMemberMap(Map<String, MemberWithRoleId> mMap, Map<?,?> roleMap)
 	{
-	    Map<String, Member> rv = new HashMap<String, Member>();
+	    Map<String, BaseMember> rv = new HashMap<>();
 	    for (Map.Entry<String, MemberWithRoleId> entry : mMap.entrySet())
 	    {
 	        String userId = entry.getKey();
@@ -646,11 +646,12 @@ public abstract class DbAuthzGroupService extends BaseAuthzGroupService implemen
 	 * transform a Map<String, Member> object into a Map<String, MemberWithRoleId> object
 	 * to be used in RealmRoleGroupCache
 	 * KNL-1037
+	 * @param userGrants
 	 */
-	private Map<String, MemberWithRoleId> getMemberWithRoleIdMap(Map<String, Member> userGrants)
+	private Map<String, MemberWithRoleId> getMemberWithRoleIdMap(Map<String, BaseMember> userGrants)
 	{
-	    Map<String, MemberWithRoleId> rv = new HashMap<String, MemberWithRoleId>();
-	    for (Map.Entry<String, Member> entry : userGrants.entrySet())
+	    Map<String, MemberWithRoleId> rv = new HashMap<>();
+	    for (Map.Entry<String, BaseMember> entry : userGrants.entrySet())
 	    {
 	        String userId = entry.getKey();
 	        Member member = entry.getValue();
@@ -827,7 +828,7 @@ public abstract class DbAuthzGroupService extends BaseAuthzGroupService implemen
 				for (java.util.Map.Entry<String, SimpleRole> mapEntry : roleProperties.entrySet()) {
 					roles.put(mapEntry.getKey(), new BaseRole(mapEntry.getValue()));
 				}
-				Map<String, Member> userGrants = new HashMap<String, Member>();
+				Map<String, BaseMember> userGrants = new HashMap<String, BaseMember>();
 				
 				Map<String, MemberWithRoleId> userGrantsWithRoleIdMap = (Map<String, MemberWithRoleId>) realmRoleGRCache.get(REALM_USER_GRANTS_CACHE);
 				userGrants.putAll(getMemberMap(userGrantsWithRoleIdMap, roles));
@@ -925,7 +926,7 @@ public abstract class DbAuthzGroupService extends BaseAuthzGroupService implemen
 			                String provided = result.getString(4);
 
 			                // give the user one and only one role grant - there should be no second...
-			                BaseMember grant = (BaseMember) realm.m_userGrants.get(userId);
+			                BaseMember grant = realm.m_userGrants.get(userId);
 			                if (grant == null)
 			                {
 			                    // find the role - if it does not exist, create it for this grant
@@ -1527,10 +1528,8 @@ public abstract class DbAuthzGroupService extends BaseAuthzGroupService implemen
 		{
 			// add what we have in the azg, unless we see it in the db
 			final Set<UserAndRole> toAdd = new HashSet<UserAndRole>();
-			for (Iterator i = ((BaseAuthzGroup) azg).m_userGrants.entrySet().iterator(); i.hasNext();)
+			for (Member grant: ((BaseAuthzGroup) azg).m_userGrants.values())
 			{
-				Map.Entry entry = (Map.Entry) i.next();
-				Member grant = (Member) entry.getValue();
 				toAdd.add(new UserAndRole(grant.getUserId(), grant.getRole().getId(), grant.isActive(), grant.isProvided()));
 			}
 
