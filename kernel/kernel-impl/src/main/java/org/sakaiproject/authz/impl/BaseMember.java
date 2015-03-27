@@ -45,6 +45,7 @@ public class BaseMember implements Member
 
 	protected String userId = null;
 
+	// Just used to lookup a user and get their display ID and EID.
 	private UserDirectoryService userDirectoryService;
 
 	public BaseMember(Role role, boolean active, boolean provided, String userId, UserDirectoryService userDirectoryService)

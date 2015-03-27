@@ -56,8 +56,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	/** Our logger. */
 	private static Log M_log = LogFactory.getLog(BaseAuthzGroupService.class);
 
-	/** Storage manager for this service. */
-	protected Storage m_storage = null;
+	private Storage m_storage = null;
 
 	/** The initial portion of a relative access point URL. */
 	protected String m_relativeAccessPoint = null;
@@ -272,9 +271,6 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 			
 			m_relativeAccessPoint = REFERENCE_ROOT;
 
-			// construct storage and read
-			m_storage = newStorage();
-			m_storage.open();
 
 			// register as an entity producer
 			entityManager().registerEntityProducer(this, REFERENCE_ROOT);
@@ -298,6 +294,9 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
             }
 
 			M_log.info("init(): provider: " + ((m_provider == null) ? "none" : m_provider.getClass().getName()));
+
+			//get the set of maintain roles and cache them on startup
+			getMaintainRoles();
 		}
 		catch (Exception t)
 		{
@@ -310,9 +309,6 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public void destroy()
 	{
-		m_storage.close();
-		m_storage = null;
-
 		M_log.info("destroy()");
 	}
 
@@ -325,7 +321,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public List getAuthzGroups(String criteria, PagingPosition page)
 	{
-		return m_storage.getAuthzGroups(criteria, page);
+		return storage().getAuthzGroups(criteria, page);
 	}
 
 	/**
@@ -333,7 +329,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public List getAuthzUserGroupIds(ArrayList authzGroupIds, String userid)
 	{
-		return m_storage.getAuthzUserGroupIds(authzGroupIds, userid);
+		return storage().getAuthzUserGroupIds(authzGroupIds, userid);
 	}
 	
 	/**
@@ -341,7 +337,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Collection<String> getAuthzUsersInGroups(Set<String> groupIds)
 	{
-		return m_storage.getAuthzUsersInGroups(groupIds);
+		return storage().getAuthzUsersInGroups(groupIds);
 	}
 
 	/**
@@ -349,7 +345,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public int countAuthzGroups(String criteria)
 	{
-		return m_storage.countAuthzGroups(criteria);
+		return storage().countAuthzGroups(criteria);
 	}
 	
 	/**
@@ -357,7 +353,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Set getAuthzGroupIds(String providerId)
 	{
-		return m_storage.getAuthzGroupIds(providerId);
+		return storage().getAuthzGroupIds(providerId);
 	}
 
 	/**
@@ -365,7 +361,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Set getProviderIds(String authzGroupId)
 	{
-		return m_storage.getProviderIds(authzGroupId);
+		return storage().getProviderIds(authzGroupId);
 	}
 
 	/**
@@ -376,7 +372,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		// Note: since this is a "read" operations, we do NOT refresh (i.e. write) the provider info.
 		if (id == null) throw new GroupNotDefinedException("<null>");
 
-		AuthzGroup azGroup = m_storage.get(id);
+		AuthzGroup azGroup = storage().get(id);
 
 		// if not found
 		if (azGroup == null)
@@ -409,7 +405,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		unlock(SECURE_UPDATE_OWN_AUTHZ_GROUP, authzGroupId);
 
 		// get the AuthzGroup
-		AuthzGroup azGroup = m_storage.get(authzGroupId);
+		AuthzGroup azGroup = storage().get(authzGroupId);
 		if (azGroup == null)
 		{
 			throw new GroupNotDefinedException(authzGroupId);
@@ -454,7 +450,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		unlock(SECURE_UPDATE_OWN_AUTHZ_GROUP, authzGroupId);
 
 		// get the AuthzGroup
-		AuthzGroup azGroup = m_storage.get(authzGroupId);
+		AuthzGroup azGroup = storage().get(authzGroupId);
 		if (azGroup == null)
 		{
 			throw new GroupNotDefinedException(authzGroupId);
@@ -506,7 +502,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 				return false;
 		
 		// get the AuthzGroup
-		AuthzGroup azGroup = m_storage.get(authzGroupId);
+		AuthzGroup azGroup = storage().get(authzGroupId);
 		if (azGroup == null)
 				return false;
 		
@@ -534,7 +530,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		if (!unlockCheck(SECURE_UPDATE_OWN_AUTHZ_GROUP, authzGroupId)) return false;
 
 		// get the azGroup
-		AuthzGroup azGroup = m_storage.get(authzGroupId);
+		AuthzGroup azGroup = storage().get(authzGroupId);
 		if (azGroup == null)
 		{
 			return false;
@@ -589,13 +585,13 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		}
 
 		// make sure it's in storage
-		if (!m_storage.check(azGroup.getId()))
+		if (!storage().check(azGroup.getId()))
 		{
 			// if this was new, create it in storage
 			if (((BaseAuthzGroup) azGroup).m_isNew)
 			{
 				// reserve an AuthzGroup with this id from the info store - if it's in use, this will return null
-				AuthzGroup newAzg = m_storage.put(azGroup.getId());
+				AuthzGroup newAzg = storage().put(azGroup.getId());
 				if (newAzg == null)
 				{
 					M_log.warn("saveUsingSecurity, storage.put for a new returns null");
@@ -626,7 +622,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 			authzGroupAdvisor.update(azGroup);
 		}
 		// complete the azGroup
-		m_storage.save(azGroup);
+		storage().save(azGroup);
 
 		// track it
 		String event = ((BaseAuthzGroup) azGroup).getEvent();
@@ -637,11 +633,11 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
             try {
                 HashSet<String> roles = null;
                 HashSet<String> permissions = null;
-                Set<DbAuthzGroupService.DbStorage.RoleAndFunction> lastChangedPerms = ((BaseAuthzGroup) azGroup).m_lastChangedRlFn;
+                Set<RoleAndFunction> lastChangedPerms = ((BaseAuthzGroup) azGroup).m_lastChangedRlFn;
                 if (lastChangedPerms != null && !lastChangedPerms.isEmpty()) {
                     roles = new HashSet<String>();
                     permissions = new HashSet<String>(lastChangedPerms.size());
-                    for (DbAuthzGroupService.DbStorage.RoleAndFunction rf : lastChangedPerms) {
+                    for (RoleAndFunction rf : lastChangedPerms) {
                         permissions.add(rf.function);
                         roles.add(rf.role);
                     }
@@ -659,7 +655,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
         ((BaseAuthzGroup) azGroup).m_lastChangedRlFn = null; // cleanup
 
 		// update the db with latest provider, and site security with the latest changes, using the updated azGroup
-		BaseAuthzGroup updatedRealm = (BaseAuthzGroup) m_storage.get(azGroup.getId());
+		BaseAuthzGroup updatedRealm = (BaseAuthzGroup) storage().get(azGroup.getId());
 		updateSiteSecurity(updatedRealm);
 
 		// clear the event for next time
@@ -682,7 +678,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		}
 		
 		// add user to the azGroup
-		m_storage.addNewUser(azGroup, userId, roleId, maxSize);
+		storage().addNewUser(azGroup, userId, roleId, maxSize);
 
 		// track it
 		// KNL-523 set the event
@@ -694,7 +690,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		((BaseAuthzGroup) azGroup).closeEdit();
 
 		// update the db with latest provider, and site security with the latest changes, using the updated azGroup
-		BaseAuthzGroup updatedRealm = (BaseAuthzGroup) m_storage.get(azGroup.getId());
+		BaseAuthzGroup updatedRealm = (BaseAuthzGroup) storage().get(azGroup.getId());
 		updateSiteSecurity(updatedRealm);
 
 		// clear the event for next time
@@ -717,7 +713,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 			authzGroupAdvisor.groupUpdate(azGroup, userId, azGroup.getMember(userId).getRole().getId());
 		}
 		// remove user from the azGroup
-		m_storage.removeUser(azGroup, userId);
+		storage().removeUser(azGroup, userId);
 
 		// track it
 		// KNL-523 set the event
@@ -729,7 +725,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		((BaseAuthzGroup) azGroup).closeEdit();
 
 		// update the db with latest provider, and site security with the latest changes, using the updated azGroup
-		BaseAuthzGroup updatedRealm = (BaseAuthzGroup) m_storage.get(azGroup.getId());
+		BaseAuthzGroup updatedRealm = (BaseAuthzGroup) storage().get(azGroup.getId());
 		updateSiteSecurity(updatedRealm);
 
 		// clear the event for next time
@@ -756,7 +752,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		unlock(SECURE_ADD_AUTHZ_GROUP, authzGroupReference(id));
 
 		// reserve an AuthzGroup with this id from the info store - if it's in use, this will return null
-		AuthzGroup azGroup = m_storage.put(id);
+		AuthzGroup azGroup = storage().put(id);
 		if (azGroup == null)
 		{
 			throw new GroupAlreadyDefinedException(id);
@@ -867,7 +863,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
             M_log.warn("Failure while trying to notify SS about realm removal for AZG(" + azGroup.getId() + "): " + e, e);
         } // End KNL-1230
 		// complete the azGroup
-		m_storage.remove(azGroup);
+		storage().remove(azGroup);
 
 		// track it
 		eventTrackingService().post(eventTrackingService().newEvent(SECURE_REMOVE_AUTHZ_GROUP, azGroup.getReference(), true));
@@ -887,7 +883,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		if (azGroupId == null) return;
 
 		// check for existance
-		AuthzGroup azGroup = m_storage.get(azGroupId);
+		AuthzGroup azGroup = storage().get(azGroupId);
 		if (azGroup == null)
 		{
 			return;
@@ -909,7 +905,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public boolean isAllowed(String user, String function, String azGroupId)
 	{
-		return m_storage.isAllowed(user, function, azGroupId);
+		return storage().isAllowed(user, function, azGroupId);
 	}
 
 	/**
@@ -917,7 +913,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public boolean isAllowed(String user, String function, Collection azGroups)
 	{
-		return m_storage.isAllowed(user, function, azGroups);
+		return storage().isAllowed(user, function, azGroups);
 	}
 
 	/**
@@ -925,7 +921,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Set getUsersIsAllowed(String function, Collection azGroups)
 	{
-		return m_storage.getUsersIsAllowed(function, azGroups);
+		return storage().getUsersIsAllowed(function, azGroups);
 	}
 	
 	/**
@@ -933,7 +929,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Set<String[]> getUsersIsAllowedByGroup(String function, Collection<String> azGroups)
 	{
-		return m_storage.getUsersIsAllowedByGroup(function, azGroups);
+		return storage().getUsersIsAllowedByGroup(function, azGroups);
 	}
 
 	/**
@@ -941,7 +937,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Map<String,Integer> getUserCountIsAllowed(String function, Collection<String> azGroups)
 	{
-		return m_storage.getUserCountIsAllowed(function, azGroups);
+		return storage().getUserCountIsAllowed(function, azGroups);
 	}
 	
 	/**
@@ -949,7 +945,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Set getAllowedFunctions(String role, Collection azGroups)
 	{
-		return m_storage.getAllowedFunctions(role, azGroups);
+		return storage().getAllowedFunctions(role, azGroups);
 	}
 
 	/**
@@ -957,7 +953,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Set getAuthzGroupsIsAllowed(String userId, String function, Collection azGroups)
 	{
-		return m_storage.getAuthzGroupsIsAllowed(userId, function, azGroups);
+		return storage().getAuthzGroupsIsAllowed(userId, function, azGroups);
 	}
 
 	/**
@@ -965,7 +961,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public String getUserRole(String userId, String azGroupId)
 	{
-		return m_storage.getUserRole(userId, azGroupId);
+		return storage().getUserRole(userId, azGroupId);
 	}
 
 	/**
@@ -973,7 +969,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Map<String, String> getUserRoles(String userId, Collection<String> azGroupIds)
 	{
-		return m_storage.getUserRoles(userId, azGroupIds);
+		return storage().getUserRoles(userId, azGroupIds);
 	}
 	
 	/**
@@ -981,7 +977,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 */
 	public Map getUsersRole(Collection userIds, String azGroupId)
 	{
-		return m_storage.getUsersRole(userIds, azGroupId);
+		return storage().getUsersRole(userIds, azGroupId);
 	}
 
 	/**
@@ -1002,7 +998,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 			if (!serverConfigurationService().getBoolean("suppressCMRefresh", false)) {
 				Map providerGrants = new ProviderMap(m_provider, m_provider.getGroupRolesForUser(eid));
 
-				m_storage.refreshUser(userId, providerGrants);
+				storage().refreshUser(userId, providerGrants);
 			}
 
 			// update site security for this user - get the user's realms for the three site locks
@@ -1148,7 +1144,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	 * @param reference The reference to a realm. eg<code>/realm//site/mercury</code>
 	 * @return The ID of the realm or <code>null</code> if it's not a realm reference.
 	 */
-	protected String extractEntityId(String reference)
+	protected static String extractEntityId(String reference)
 	{
 		if (reference.startsWith(REFERENCE_ROOT) && REFERENCE_ROOT.length() + 1 <= reference.length())
 		{
@@ -1232,6 +1228,9 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	{
 		return "";
 	}
+
+	/** Storage manager for this service. */
+	protected abstract Storage storage();
 
 	/**********************************************************************************************************************************************************************************************************************************************************
 	 * Storage
@@ -1399,7 +1398,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		 *        The user id.
 		 * @param function
 		 *        The function to open.
-		 * @param azGroups
+		 * @param realms
 		 *        A collection of AuthzGroup ids to consult.
 		 * @return true if this user is allowed to perform the function in the named AuthzGroups, false if not.
 		 */
@@ -1469,8 +1468,6 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		 * 
 		 * @param userId
 		 *        The user id.
-		 * @param function
-		 *        The function to open.
 		 * @param azGroupId
 		 *        The AuthzGroup id to consult, if it exists.
 		 * @return the role name for this user in this AuthzGroup, if the user has active membership, or null if not.
@@ -1492,10 +1489,8 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 		/**
 		 * Get the role name for each user in the userIds Collection in this AuthzGroup.
 		 * 
-		 * @param userId
-		 *        The user id.
-		 * @param function
-		 *        The function to open.
+		 * @param userIds
+		 *        The user ids to get roles for.
 		 * @param azGroupId
 		 *        The AuthzGroup id to consult, if it exists.
 		 * @return A Map (userId -> role name) of role names for each user who have active membership; if the user does not, it will not be in the Map.
@@ -1553,7 +1548,7 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	}
 
     public Set getMaintainRoles(){
-        return m_storage.getMaintainRoles();
+        return storage().getMaintainRoles();
     }
 
 	/**
