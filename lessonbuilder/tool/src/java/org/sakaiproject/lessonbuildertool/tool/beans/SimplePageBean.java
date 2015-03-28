@@ -60,6 +60,7 @@ import org.sakaiproject.lessonbuildertool.tool.producers.PagePickerProducer;
 import org.sakaiproject.lessonbuildertool.tool.view.GeneralViewParameters;
 import org.sakaiproject.memory.api.Cache;
 import org.sakaiproject.memory.api.MemoryService;
+import org.sakaiproject.memory.api.SimpleConfiguration;
 import org.sakaiproject.site.api.*;
 import org.sakaiproject.time.cover.TimeService;
 import org.sakaiproject.tool.api.Placement;
@@ -579,11 +580,13 @@ public class SimplePageBean {
 		isoDateFormat.setTimeZone(tz);
 
 		if (groupCache == null) {
-			groupCache = memoryService.newCache("org.sakaiproject.lessonbuildertool.tool.beans.SimplePageBean.groupCache");
+			groupCache = memoryService.createCache(
+					"org.sakaiproject.lessonbuildertool.tool.beans.SimplePageBean.groupCache",
+					new SimpleConfiguration<>(5000, 600, 360));
 		}
 		
 		if (resourceCache == null) {
-			resourceCache = memoryService.newCache("org.sakaiproject.lessonbuildertool.tool.beans.SimplePageBean.resourceCache");
+			resourceCache = memoryService.getCache("org.sakaiproject.lessonbuildertool.tool.beans.SimplePageBean.resourceCache");
 		}
 	}
 
@@ -3229,9 +3232,9 @@ public class SimplePageBean {
 	   }
 
 	   if (ret == null)
-	       groupCache.put(i.getSakaiId(), "*", DEFAULT_EXPIRATION);
+	       groupCache.put(i.getSakaiId(), "*");
 	   else
-	       groupCache.put(i.getSakaiId(), ret, DEFAULT_EXPIRATION);
+	       groupCache.put(i.getSakaiId(), ret);
 
 	   return ret;
 
@@ -3303,9 +3306,9 @@ public class SimplePageBean {
     		   
     		   if (!nocache) {
     			   if (ret == null)
-    				   groupCache.put(i.getSakaiId(), "*", DEFAULT_EXPIRATION);
+    				   groupCache.put(i.getSakaiId(), "*");
     			   else
-    				   groupCache.put(i.getSakaiId(), ret, DEFAULT_EXPIRATION);
+    				   groupCache.put(i.getSakaiId(), ret);
     		   }
     		   
     		   return ret;

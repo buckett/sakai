@@ -54,6 +54,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
 
+import org.sakaiproject.memory.api.SimpleConfiguration;
 import org.sakaiproject.time.api.Time;
 import org.sakaiproject.time.cover.TimeService;
 import org.sakaiproject.authz.api.SecurityAdvisor;
@@ -224,7 +225,6 @@ public class LessonBuilderAccessService {
 	// from no to yes in less than 10 min. going back is very unusual
 	// item : userid => string true
 	private static Cache accessCache = null;
-	protected static final int DEFAULT_EXPIRATION = 10 * 60;
 
         SecurityAdvisor allowReadAdvisor = new SecurityAdvisor() {
 		public SecurityAdvice isAllowed(String userId, String function, String reference) {
@@ -239,7 +239,10 @@ public class LessonBuilderAccessService {
 	public void init() {
 		lessonBuilderAccessAPI.setHttpAccess(getHttpAccess());
 
-		accessCache = memoryService.newCache("org.sakaiproject.lessonbuildertool.service.LessonBuilderAccessService.cache");
+		accessCache = memoryService.createCache(
+				"org.sakaiproject.lessonbuildertool.service.LessonBuilderAccessService.cache",
+				new SimpleConfiguration<Object, Object>(5000, 600, 360)
+		);
 
 		SimplePageItem metaItem = null;
 		// Get crypto session key from metadata item
@@ -539,7 +542,7 @@ public class LessonBuilderAccessService {
 							throw new EntityPermissionException(null, null, null);
 						}
 						}
-						accessCache.put(accessKey, "true", DEFAULT_EXPIRATION);
+						accessCache.put(accessKey, "true");
 						
 					    }
 					} else {
