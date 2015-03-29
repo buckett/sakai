@@ -96,7 +96,8 @@ public interface SqlService
 	 * @param fields
 	 *        The array of fields for parameters.
 	 * @param reader
-	 *        The reader object to read each record.
+	 *        The reader object to read each record, if reader is <code>null</code> a List of Strings will be returned
+	 *        with the values from the first column of the resultset.
 	 * @return The List of things read, one per record.
 	 */
 	List dbRead(String sql, Object[] fields, SqlReader reader);
@@ -112,7 +113,8 @@ public interface SqlService
 	 * @param fields
 	 *        The array of fields for parameters.
 	 * @param reader
-	 *        The reader object to read each record.
+	 *        The reader object to read each record, if reader is <code>null</code> a List of Strings will be returned
+	 *        with the values from the first column of the resultset.
 	 * @return The List of things read, one per record.
 	 */
 	List dbRead(Connection conn, String sql, Object[] fields, SqlReader reader);
