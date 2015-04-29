@@ -67,9 +67,9 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 	/** Our log (commons). */
 	private static Log M_log = LogFactory.getLog(DbAuthzGroupService.class);
 	/** All the event functions we know exist on the db. */
-	protected Collection m_functionCache = new HashSet();
+	protected Collection<String> m_functionCache = new HashSet<String>();
 	/** All the event role names we know exist on the db. */
-	protected Collection m_roleNameCache = new HashSet();
+	protected Collection<RealmRole> m_roleNameCache = new HashSet<RealmRole>();
 	/** Table name for realms. */
 	static String m_realmTableName = "SAKAI_REALM";
 	/** Table name for realm properties. */
@@ -184,13 +184,13 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 
 	protected abstract UserDirectoryService userDirectoryService();
 
+	// Just used for roleswap, should be passed in on call
 	protected abstract SecurityService securityService();
 
 	protected abstract TimeService timeService();
 
+	// Just used for roleswap, should be passed in on call
 	protected abstract SessionManager sessionManager();
-
-	protected abstract SiteService siteService();
 
 	/**
 	 * Configuration: set the external locks value.
@@ -621,7 +621,7 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 			String realmId = BaseAuthzGroupService.extractEntityId(event.getResource());
 
 			if (realmId != null) {
-				for (String user : m_storage.getAuthzUsersInGroups(Collections.singleton(realmId))) {
+				for (String user : getAuthzUsersInGroups(Collections.singleton(realmId))) {
 					authzUserGroupIdsCache.remove(user);
 				}
 				if (M_log.isDebugEnabled()) {
@@ -652,7 +652,7 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 	        if (roleId != null && roleMap != null && roleMap.containsKey(roleId))
 	        {
 	            Role role = (Role) roleMap.get(roleId);
-				rv.put(userId, new BaseMember(role, m.isActive(), m.isProvided(), userId, userDirectoryService()));
+				rv.put(userId, new BaseMember(role, m.isActive(), m.isProvided(), userId, groupServices));
 	        }
 	    }
 	    return rv;
@@ -942,7 +942,7 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 			                        realm.m_roles.put(role.getId(), role);
 			                    }
 
-								grant = new BaseMember(role, "1".equals(active), "1".equals(provided), userId, userDirectoryService());
+								grant = new BaseMember(role, "1".equals(active), "1".equals(provided), userId, groupServices);
 
 			                    realm.m_userGrants.put(userId, grant);
 			                }
@@ -1111,21 +1111,21 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 		/**
 		 * {@inheritDoc}
 		 */
-		public Set getProviderIds(String authzGroupId)
+		public Set<String> getProviderIds(String authzGroupId)
 		{
 			String statement = dbAuthzGroupSql.getSelectRealmProviderId1Sql();
-			List results = sqlService().dbRead(statement, new Object[] {authzGroupId}, null);
+			List<String> results = sqlService().dbRead(statement, new Object[]{authzGroupId}, null);
 			if (results == null)
 			{
-				return new HashSet();
+				return new HashSet<String>();
 			}
-			return new HashSet(results);
+			return new HashSet<String>(results);
 		}
 
 		/**
 		 * {@inheritDoc}
 		 */
-		public Set getAuthzGroupIds(String providerId)
+		public Set<String> getAuthzGroupIds(String providerId)
 		{
 			String statement = dbAuthzGroupSql.getSelectRealmIdSql();
 			List results = sqlService().dbRead(statement, new Object[] {providerId}, null);
@@ -1156,7 +1156,7 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
                 Object[] fields = new Object[1];
                 fields[0] = userId;
                 List<String> dbResult = sqlService().dbRead(statement, fields, null );
-                return new HashSet(dbResult);
+                return new HashSet<String>(dbResult);
             }
 
 			// Just like unlock, except we use all realms and get their ids
@@ -1395,9 +1395,9 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 				// make sure the role name is defined / define it
 				checkRoleName(role.getId());
 
-				for (Iterator iFunctions = role.getAllowedFunctions().iterator(); iFunctions.hasNext();)
+				for (Iterator<String> iFunctions = role.getAllowedFunctions().iterator(); iFunctions.hasNext();)
 				{
-					String function = (String) iFunctions.next();
+					String function = iFunctions.next();
 
 					// make sure the role name is defined / define it
 					checkFunctionName(function);
@@ -1449,9 +1449,9 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 			for (Iterator iRoles = ((BaseAuthzGroup) azg).m_roles.values().iterator(); iRoles.hasNext();)
 			{
 				Role role = (Role) iRoles.next();
-				for (Iterator iFunctions = role.getAllowedFunctions().iterator(); iFunctions.hasNext();)
+				for (Iterator<String> iFunctions = role.getAllowedFunctions().iterator(); iFunctions.hasNext();)
 				{
-					String function = (String) iFunctions.next();
+					String function = iFunctions.next();
 					toAdd.add(new RoleAndFunction(role.getId(), function));
 				}
 			}
@@ -2277,9 +2277,9 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 				fields = new Object[realms.size() + 1];
 				int pos = 0;
 				fields[pos++] = lock;
-				for (Iterator i = realms.iterator(); i.hasNext();)
+				for (Iterator<String> i = realms.iterator(); i.hasNext();)
 				{
-					String roleRealm = (String) i.next();
+					String roleRealm = i.next();
 					fields[pos++] = roleRealm;
 				}
 			} else {
@@ -2330,9 +2330,9 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 				int pos = 0;
 				fields[pos++] = function;
 
-				for (Iterator i = azGroups.iterator(); i.hasNext();)
+				for (Iterator<String> i = azGroups.iterator(); i.hasNext();)
 				{
-					String roleRealm = (String) i.next();
+					String roleRealm = i.next();
 					fields[pos++] = roleRealm;
 				}
 			} else {
@@ -2616,7 +2616,7 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 			if (containingRealmId != null)
 			{
 				String containingRealmRef = siteService.siteReference(containingRealmId);
-				containingRealm = m_storage.get(containingRealmRef);
+				containingRealm = get(containingRealmRef);
 				if (containingRealm == null)
 				{
 					M_log.warn("refreshAuthzGroupInternal() cannot find containing realm for id: " + containingRealmRef);
@@ -3002,7 +3002,7 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 			}
 
 			// the return
-			final Map rv = new HashMap();
+			final Map<String, String> rv = new HashMap<String, String>();
 
 			// read
 			m_sql.dbRead(sql, fields, new SqlReader()

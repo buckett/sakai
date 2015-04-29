@@ -102,9 +102,6 @@ public class BaseAuthzGroup implements AuthzGroup
 	// This is only used for 2 things, loading the object and getting an entity reference
 	private BaseGroupServices service;
 
-	// Used to create members as they need to be able to lookup people.
-	private UserDirectoryService userDirectoryService;
-
     /** The most recently changed set of role/functions - ONLY valid during the save event processing on the same server */
     public Set<RoleAndFunction> m_lastChangedRlFn;
 
@@ -264,7 +261,7 @@ public class BaseAuthzGroup implements AuthzGroup
 					else
 					{
 						grant = new BaseMember(role, Boolean.valueOf(active).booleanValue(), Boolean.valueOf(provided)
-								.booleanValue(), userId, userDirectoryService);
+								.booleanValue(), userId, service);
 						m_userGrants.put(userId, grant);
 					}
 				}
@@ -356,7 +353,7 @@ public class BaseAuthzGroup implements AuthzGroup
 						}
 						else
 						{
-							grant = new BaseMember(role, true, false, userId, userDirectoryService);
+							grant = new BaseMember(role, true, false, userId, service);
 							m_userGrants.put(userId, grant);
 						}
 					}
@@ -537,7 +534,7 @@ public class BaseAuthzGroup implements AuthzGroup
 			String id = entry.getKey();
 
 			m_userGrants.put(id, new BaseMember((Role) m_roles.get(grant.role.getId()), grant.active, grant.provided, grant.userId,
-					userDirectoryService));
+					service));
 		}
 
 		m_properties = new BaseResourcePropertiesEdit();
@@ -1003,7 +1000,7 @@ public class BaseAuthzGroup implements AuthzGroup
 		BaseMember grant = m_userGrants.get(user);
 		if (grant == null)
 		{
-			grant = new BaseMember(role, active, provided, user, userDirectoryService);
+			grant = new BaseMember(role, active, provided, user, service);
 			m_userGrants.put(user, grant);
 		}
 		else
