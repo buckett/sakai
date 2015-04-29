@@ -57,10 +57,10 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * <p>
- * DbAuthzGroupService is an extension of the BaseAuthzGroupService with database storage.
+ * DbAuthzGroupService is an implementation of the BaseAuthzGroupService storage.
  * </p>
  */
-public abstract class DbAuthzGroupService implements Observer
+abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuthzGroupService.Storage, SqlReader, Observer
 {
 	/** To avoide the dreaded ORA-01795 and the like, we need to limit to <100 the items in each in(?, ?, ...) clause, connecting them with ORs. */
 	protected final static int MAX_IN_CLAUSE = 99;
@@ -71,22 +71,22 @@ public abstract class DbAuthzGroupService implements Observer
 	/** All the event role names we know exist on the db. */
 	protected Collection m_roleNameCache = new HashSet();
 	/** Table name for realms. */
-	protected String m_realmTableName = "SAKAI_REALM";
+	static String m_realmTableName = "SAKAI_REALM";
 	/** Table name for realm properties. */
-	protected String m_realmPropTableName = "SAKAI_REALM_PROPERTY";
+	static String m_realmPropTableName = "SAKAI_REALM_PROPERTY";
 	/** ID field for realm. */
-	protected String m_realmIdFieldName = "REALM_ID";
+	static String m_realmIdFieldName = "REALM_ID";
 	/** AuthzGroup dbid field. */
-	protected String m_realmDbidField = "REALM_KEY";
+	static String m_realmDbidField = "REALM_KEY";
 	/** All "fields" for realm reading. */
-	protected String[] m_realmReadFieldNames = {"REALM_ID", "PROVIDER_ID",
+	static String[] m_realmReadFieldNames = {"REALM_ID", "PROVIDER_ID",
 			"(select MAX(ROLE_NAME) from SAKAI_REALM_ROLE where ROLE_KEY = MAINTAIN_ROLE)", "CREATEDBY", "MODIFIEDBY", "CREATEDON", "MODIFIEDON",
 			"REALM_KEY"};
 	/** All "fields" for realm update. */
-	protected String[] m_realmUpdateFieldNames = {"REALM_ID", "PROVIDER_ID",
+	static String[] m_realmUpdateFieldNames = {"REALM_ID", "PROVIDER_ID",
 			"MAINTAIN_ROLE = (select MAX(ROLE_KEY) from SAKAI_REALM_ROLE where ROLE_NAME = ?)", "CREATEDBY", "MODIFIEDBY", "CREATEDON", "MODIFIEDON"};
 	/** All "fields" for realm insert. */
-	protected String[] m_realmInsertFieldNames = {"REALM_ID", "PROVIDER_ID", "MAINTAIN_ROLE", "CREATEDBY", "MODIFIEDBY", "CREATEDON", "MODIFIEDON"};
+	static String[] m_realmInsertFieldNames = {"REALM_ID", "PROVIDER_ID", "MAINTAIN_ROLE", "CREATEDBY", "MODIFIEDBY", "CREATEDON", "MODIFIEDON"};
 
 	/*************************************************************************************************************************************************
 	 * Dependencies
@@ -135,7 +135,8 @@ public abstract class DbAuthzGroupService implements Observer
 
 	/** Queue of authzgroups to refresh used by refreshAuthzGroupTask */
 	private Map<String, AuthzGroup> refreshQueue;
-	private BaseAuthzGroupService.Storage m_storage;
+
+	// This shouldn't be in here, it should be at the service level.
 	private GroupProvider m_provider;
 
 	// TODO needs setting
@@ -262,8 +263,6 @@ public abstract class DbAuthzGroupService implements Observer
 
 			setDbAuthzGroupSql(sqlService().getVendor());
 
-			m_storage = newStorage();
-
 			// pre-cache role and function names
 			cacheRoleNames();
 			cacheFunctionNames();
@@ -326,19 +325,6 @@ public abstract class DbAuthzGroupService implements Observer
 
 		M_log.info(this +".destroy()");
 	}
-
-	/**
-	 * Construct a Storage object.
-	 *
-	 * @return The new storage object.
-	 */
-	protected BaseAuthzGroupService.Storage newStorage()
-	{
-		DbStorage storage = new DbStorage(entityManager(), siteService());
-		storage.setPromoteUsersToProvided(m_promoteUsersToProvided);
-		return storage;
-
-	} // newStorage
 
 	/**
 	 * Check / assure this role name is defined.
@@ -715,7 +701,7 @@ public abstract class DbAuthzGroupService implements Observer
 					long time = 0;
 					long start = System.currentTimeMillis();
 					try {
-						((DbStorage)m_storage).refreshAuthzGroupInternal((BaseAuthzGroup) azGroup);
+						refreshAuthzGroupInternal((BaseAuthzGroup) azGroup);
 					} catch (Throwable e) {
 						M_log.error("RefreshAuthzGroupTask.run() Problem refreshing azgroup: " + azGroup.getId(), e);
 					} finally {
@@ -745,8 +731,6 @@ public abstract class DbAuthzGroupService implements Observer
 	/**
 	 * Covers for the BaseXmlFileStorage, providing AuthzGroup and RealmEdit parameters
 	 */
-	protected class DbStorage extends BaseDbFlatStorage implements BaseAuthzGroupService.Storage, SqlReader
-	{
 
 		private static final String REALM_USER_GRANTS_CACHE = "REALM_USER_GRANTS_CACHE";
 		private static final String REALM_ROLES_CACHE = "REALM_ROLES_CACHE";
@@ -757,9 +741,9 @@ public abstract class DbAuthzGroupService implements Observer
 		/**
 		 * Construct.
 		 */
-		public DbStorage(EntityManager entityManager, SiteService siteService)
+		public DbAuthzGroupService(EntityManager entityManager, SiteService siteService, SqlService sqlService, boolean useExternalLocks)
 		{
-			super(m_realmTableName, m_realmIdFieldName, m_realmReadFieldNames, m_realmPropTableName, m_useExternalLocks, null, sqlService());
+			super(m_realmTableName, m_realmIdFieldName, m_realmReadFieldNames, m_realmPropTableName, useExternalLocks, null, sqlService);
 			m_reader = this;
 
 			setDbidField(m_realmDbidField);
@@ -770,16 +754,6 @@ public abstract class DbAuthzGroupService implements Observer
 			this.siteService = siteService;
 
 			// setSortField(m_realmSortField, null);
-		}
-
-		/**
-		 * Configure whether or not users with same status and role will be "promoted" to
-		 * being provided.
-		 *
-		 * @param promoteUsersToProvided Whether or not to promote non-provided users
-		 */
-		public void setPromoteUsersToProvided(boolean promoteUsersToProvided) {
-			this.promoteUsersToProvided = promoteUsersToProvided;
 		}
 
 		public boolean check(String id)
@@ -3151,7 +3125,5 @@ public abstract class DbAuthzGroupService implements Observer
 					" size=" + realmsQuery.size() + ", total=" + total + ", hits=" + hit + ", hit ratio=" + (hit * 100) / (float) total;
 			}
 		}
-
-	} // DbStorage
 
 }
