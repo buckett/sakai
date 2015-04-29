@@ -61,9 +61,11 @@ import org.sakaiproject.time.api.Time;
 /**
  * <p>
  * BasicSqlService implements the SqlService.
+ * This class isn't abstract as it should be started up pretty early and it's dependencies should
+ * never be crucial to it's {@link #init()}.
  * </p>
  */
-public abstract class BasicSqlService implements SqlService
+public class BasicSqlService implements SqlService
 {
 	private static final Log LOG = LogFactory.getLog(BasicSqlService.class);
 
@@ -86,15 +88,22 @@ public abstract class BasicSqlService implements SqlService
 	 ************************************************************************************************************************************************/
 
 	/**
-	 * @return the UsageSessionService collaborator.
-	 * // Just used for the logging the current user.
+	 * the UsageSessionService collaborator.
 	 */
-	protected abstract UsageSessionService usageSessionService();
+	protected UsageSessionService usageSessionService;
+
+	public void setUsageSessionService(UsageSessionService usageSessionService) {
+		this.usageSessionService = usageSessionService;
+	}
 
 	/**
-	 * @return the ThreadLocalManager collaborator.
+	 * the ThreadLocalManager collaborator.
 	 */
-	protected abstract ThreadLocalManager threadLocalManager();
+	protected ThreadLocalManager threadLocalManager;
+
+	public void setThreadLocalManager(ThreadLocalManager threadLocalManager) {
+		this.threadLocalManager = threadLocalManager;
+	}
 
 	/*************************************************************************************************************************************************
 	 * Configuration
@@ -296,7 +305,7 @@ public abstract class BasicSqlService implements SqlService
 	{
 		// if we are already in a transaction, stay in it (don't start a new one), and just run the callback (no retries, let the outside transaction
 		// code handle that)
-		if (threadLocalManager().get(TRANSACTION_CONNECTION) != null)
+		if (threadLocalManager.get(TRANSACTION_CONNECTION) != null)
 		{
 			callback.run();
 			return true;
@@ -330,7 +339,7 @@ public abstract class BasicSqlService implements SqlService
 				connection.setAutoCommit(false);
 
 				// store the connection in the thread
-				threadLocalManager().set(TRANSACTION_CONNECTION, connection);
+				threadLocalManager.set(TRANSACTION_CONNECTION, connection);
 
 				callback.run();
 
@@ -403,7 +412,7 @@ public abstract class BasicSqlService implements SqlService
 				if (connection != null)
 				{
 					// clear the connection from the thread
-					threadLocalManager().set(TRANSACTION_CONNECTION, null);
+					threadLocalManager.set(TRANSACTION_CONNECTION, null);
 
 					try
 					{
@@ -491,7 +500,7 @@ public abstract class BasicSqlService implements SqlService
 		// check for a transaction conncetion
 		if (callerConn == null)
 		{
-			callerConn = (Connection) threadLocalManager().get(TRANSACTION_CONNECTION);
+			callerConn = (Connection) threadLocalManager.get(TRANSACTION_CONNECTION);
 		}
 
 		if (LOG.isDebugEnabled())
@@ -509,7 +518,7 @@ public abstract class BasicSqlService implements SqlService
 
 		if (LOG.isDebugEnabled())
 		{
-			String userId = usageSessionService().getSessionId();
+			String userId = getSessionId();
 			StringBuilder buf = new StringBuilder();
 			if (fields != null)
 			{
@@ -665,7 +674,7 @@ public abstract class BasicSqlService implements SqlService
 		// check for a transaction conncetion
 		if (callerConn == null)
 		{
-			callerConn = (Connection) threadLocalManager().get(TRANSACTION_CONNECTION);
+			callerConn = (Connection) threadLocalManager.get(TRANSACTION_CONNECTION);
 		}
 
 		if (LOG.isDebugEnabled())
@@ -680,7 +689,7 @@ public abstract class BasicSqlService implements SqlService
 
 		if (LOG.isDebugEnabled())
 		{
-			String userId = usageSessionService().getSessionId();
+			String userId = getSessionId();
 			LOG.debug("Sql.dbReadBinary(): " + userId + "\n" + sql);
 		}
 
@@ -787,7 +796,7 @@ public abstract class BasicSqlService implements SqlService
 		int lenRead = 0;
 
         if (LOG.isDebugEnabled()) {
-            String userId = usageSessionService().getSessionId();
+            String userId = getSessionId();
             LOG.debug("Sql.dbReadBinary(): " + userId + "\n" + sql);
         }
 
@@ -934,7 +943,7 @@ public abstract class BasicSqlService implements SqlService
 
 		if (LOG.isDebugEnabled())
 		{
-			String userId = usageSessionService().getSessionId();
+			String userId = getSessionId();
 			LOG.debug("Sql.dbWriteBinary(): " + userId + "\n" + sql + "  size:" + var.length);
 		}
 
@@ -1166,7 +1175,7 @@ public abstract class BasicSqlService implements SqlService
 		// check for a transaction connection
 		if (callerConnection == null)
 		{
-			callerConnection = (Connection) threadLocalManager().get(TRANSACTION_CONNECTION);
+			callerConnection = (Connection) threadLocalManager.get(TRANSACTION_CONNECTION);
 		}
 
 		if (LOG.isDebugEnabled())
@@ -1181,7 +1190,7 @@ public abstract class BasicSqlService implements SqlService
 
 		if (LOG.isDebugEnabled())
 		{
-			String userId = usageSessionService().getSessionId();
+			String userId = getSessionId();
 			StringBuilder buf = new StringBuilder();
 			if (fields != null)
 			{
@@ -1374,7 +1383,7 @@ public abstract class BasicSqlService implements SqlService
 		// check for a transaction conncetion
 		if (callerConnection == null)
 		{
-			callerConnection = (Connection) threadLocalManager().get(TRANSACTION_CONNECTION);
+			callerConnection = (Connection) threadLocalManager.get(TRANSACTION_CONNECTION);
 			
 			if(callerConnection != null)
 			{
@@ -1394,7 +1403,7 @@ public abstract class BasicSqlService implements SqlService
 
 		if (LOG.isDebugEnabled())
 		{
-			String userId = usageSessionService().getSessionId();
+			String userId = getSessionId();
 			StringBuilder buf = new StringBuilder();
 			if (fields != null)
 			{
@@ -1574,7 +1583,7 @@ public abstract class BasicSqlService implements SqlService
 
 		if (LOG.isDebugEnabled())
 		{
-			String userId = usageSessionService().getSessionId();
+			String userId = getSessionId();
 			LOG.debug("Sql.dbReadBlobAndUpdate(): " + userId + "\n" + sql);
 		}
 
@@ -2447,6 +2456,15 @@ public abstract class BasicSqlService implements SqlService
 		}
 
 		this.longDataSource = slowDataSource;
+	}
+
+	/**
+	 * Gets the current usage session ID.
+	 * @return The current usage session ID or an empty string if one hasn't been set.
+	 */
+	private String getSessionId()
+	{
+		return (usageSessionService == null)?"":usageSessionService.getSessionId();
 	}
 
 	/**

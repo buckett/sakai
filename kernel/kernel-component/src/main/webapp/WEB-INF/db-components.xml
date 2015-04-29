@@ -13,8 +13,8 @@
 			class="org.sakaiproject.db.impl.BasicSqlService"
 			init-method="init" destroy-method="destroy" singleton="true">
 
-		<lookup-method name="usageSessionService" bean="org.sakaiproject.event.api.UsageSessionService" />
-		<lookup-method name="threadLocalManager" bean="org.sakaiproject.thread_local.api.ThreadLocalManager" />
+		<property name="usageSessionService" ref="org.sakaiproject.event.api.UsageSessionService" />
+		<property name="threadLocalManager" ref="org.sakaiproject.thread_local.api.ThreadLocalManager" />
 
 		<property name="defaultDataSource">
 			<ref bean="javax.sql.DataSource" />
