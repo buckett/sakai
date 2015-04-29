@@ -176,8 +176,10 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 	 */
 	protected abstract SqlService sqlService();
 
+	// Used for cache invalidation setup and deletgated access
 	protected abstract EventTrackingService eventTrackingService();
 
+	// Used to get refresh interval
 	protected abstract ServerConfigurationService serverConfigurationService();
 
 	protected abstract EntityManager entityManager();
@@ -960,7 +962,7 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 			        }
 			    });
 
-				Map<String, Map> payLoad = new HashMap<String, Map>();
+				Map<String, Map> payLoad = new HashMap<>();
 				// rehydrate from SimpleRole, which can be stored in a Terracotta cache
 				Map<String, SimpleRole> roleProperties = new HashMap<String, SimpleRole>();
 				for (java.util.Map.Entry<String, BaseRole> entry : ((Map<String, BaseRole>) realm.m_roles).entrySet()) {

@@ -21,12 +21,6 @@
 
 package org.sakaiproject.authz.impl;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.Stack;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,6 +32,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import java.util.*;
 
 /**
  * <p>
@@ -71,7 +67,7 @@ public class BaseRole implements Role
 	 * creates a new BaseRole, based on a SimpleRole which was exported in a previous
 	 * step, in order to support distributed cluster caching.  BaseRole cannot be serialized by
 	 * distributed caches because of ClassLoader issues.
-	 * @param map
+	 * @param role The role to copy from.
 	 */
 	public BaseRole(SimpleRole role) {
 		if (role != null) {

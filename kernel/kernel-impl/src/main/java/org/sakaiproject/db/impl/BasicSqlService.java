@@ -87,6 +87,7 @@ public abstract class BasicSqlService implements SqlService
 
 	/**
 	 * @return the UsageSessionService collaborator.
+	 * // Just used for the logging the current user.
 	 */
 	protected abstract UsageSessionService usageSessionService();
 
