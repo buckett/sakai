@@ -27,6 +27,7 @@ import org.sakaiproject.component.api.ServerConfigurationService;
 import org.sakaiproject.db.api.SqlService;
 import org.sakaiproject.entity.api.EntityManager;
 import org.sakaiproject.event.api.EventTrackingService;
+import org.sakaiproject.site.api.SiteService;
 import org.sakaiproject.time.api.TimeService;
 import org.sakaiproject.user.api.UserDirectoryService;
 import org.sakaiproject.tool.api.SessionManager;
@@ -38,7 +39,7 @@ import java.util.Set;
  * AuthzGroupServiceTest extends the db authz group service providing the dependency injectors for testing.
  * </p>
  */
-public class AuthzGroupServiceTest extends DbAuthzGroupService
+public class AuthzGroupServiceTest extends BaseAuthzGroupService
 {
 	/**
 	 * @return the ServerConfigurationService collaborator.
@@ -53,6 +54,16 @@ public class AuthzGroupServiceTest extends DbAuthzGroupService
 	 */
 	protected UserDirectoryService userDirectoryService()
 	{
+		return null;
+	}
+
+	@Override
+	protected Storage storage() {
+		return null;
+	}
+
+	@Override
+	protected Storage newStorage() {
 		return null;
 	}
 
@@ -112,8 +123,4 @@ public class AuthzGroupServiceTest extends DbAuthzGroupService
 		return null;
 	}
 
-    @Override
-    public Set<String> getMaintainRoles() {
-        return null;
-    }
 }

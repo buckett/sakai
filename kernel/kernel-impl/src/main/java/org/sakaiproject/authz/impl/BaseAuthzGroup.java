@@ -108,6 +108,27 @@ public class BaseAuthzGroup implements AuthzGroup
     /** The most recently changed set of role/functions - ONLY valid during the save event processing on the same server */
     public Set<RoleAndFunction> m_lastChangedRlFn;
 
+
+
+	/**
+	 * Construct.
+	 *
+	 * @param id
+	 *        The azGroup id.
+	 */
+	public BaseAuthzGroup(BaseGroupServices baseGroupService, String id)
+	{
+		this.service = baseGroupService;
+		m_id = id;
+
+		// setup for properties
+		ResourcePropertiesEdit props = new BaseResourcePropertiesEdit();
+		m_properties = props;
+
+		m_userGrants = new HashMap();
+		m_roles = new HashMap();
+	}
+
 	/**
 	 * (Re)Construct from parts.
 	 *
@@ -243,7 +264,7 @@ public class BaseAuthzGroup implements AuthzGroup
 					else
 					{
 						grant = new BaseMember(role, Boolean.valueOf(active).booleanValue(), Boolean.valueOf(provided)
-								.booleanValue(), userId, service);
+								.booleanValue(), userId, userDirectoryService);
 						m_userGrants.put(userId, grant);
 					}
 				}
@@ -335,7 +356,7 @@ public class BaseAuthzGroup implements AuthzGroup
 						}
 						else
 						{
-							grant = new BaseMember(role, true, false, userId, service);
+							grant = new BaseMember(role, true, false, userId, userDirectoryService);
 							m_userGrants.put(userId, grant);
 						}
 					}
@@ -516,7 +537,7 @@ public class BaseAuthzGroup implements AuthzGroup
 			String id = entry.getKey();
 
 			m_userGrants.put(id, new BaseMember((Role) m_roles.get(grant.role.getId()), grant.active, grant.provided, grant.userId,
-					service));
+					userDirectoryService));
 		}
 
 		m_properties = new BaseResourcePropertiesEdit();
@@ -982,7 +1003,7 @@ public class BaseAuthzGroup implements AuthzGroup
 		BaseMember grant = m_userGrants.get(user);
 		if (grant == null)
 		{
-			grant = new BaseMember(role, active, provided, user, service);
+			grant = new BaseMember(role, active, provided, user, userDirectoryService);
 			m_userGrants.put(user, grant);
 		}
 		else

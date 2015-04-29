@@ -138,6 +138,9 @@ public abstract class DbAuthzGroupService implements Observer
 	private BaseAuthzGroupService.Storage m_storage;
 	private GroupProvider m_provider;
 
+	// TODO needs setting
+	private BaseGroupServices groupServices;
+
 	public void setDatabaseBeans(Map databaseBeans)
 	{
 		this.databaseBeans = databaseBeans;
@@ -1909,7 +1912,7 @@ public abstract class DbAuthzGroupService implements Observer
 				Integer dbid = Integer.valueOf(result.getInt(8));
 
 				// create the Resource from these fields
-				return new BaseAuthzGroup(DbAuthzGroupService.this,dbid, id, providerId, maintainRole, createdBy, createdOn, modifiedBy, modifiedOn);
+				return new BaseAuthzGroup(groupServices, dbid, id, providerId, maintainRole, createdBy, createdOn, modifiedBy, modifiedOn);
 			}
 			catch (SQLException e)
 			{

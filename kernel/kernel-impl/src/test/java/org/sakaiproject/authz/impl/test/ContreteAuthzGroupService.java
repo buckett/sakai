@@ -62,6 +62,11 @@ public class ContreteAuthzGroupService extends BaseAuthzGroupService {
 	}
 
 	@Override
+	protected Storage storage() {
+		return null;
+	}
+
+	@Override
 	protected Storage newStorage() {
 		// TODO Auto-generated method stub
 		return null;

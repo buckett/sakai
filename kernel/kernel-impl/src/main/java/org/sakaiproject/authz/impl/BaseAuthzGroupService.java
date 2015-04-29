@@ -249,6 +249,9 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	public void setSiteService(SiteService siteService) {
 		this.siteService = siteService;
 	}
+
+	// TODO needs setting
+	protected BaseGroupServices groupServices;
 	
 	
 	/**********************************************************************************************************************************************************************************************************************************************************
@@ -816,7 +819,12 @@ public abstract class BaseAuthzGroupService implements AuthzGroupService
 	public AuthzGroup newAuthzGroup(String id, AuthzGroup other, String userId) throws GroupAlreadyDefinedException
 	{
 		// make the new AuthzGroup
-		BaseAuthzGroup azGroup = new BaseAuthzGroup(this,id);
+		BaseAuthzGroup azGroup = new BaseAuthzGroup(groupServices,id);
+
+		// if the id is not null (a new azGroup, rather than a reconstruction)
+		// add the automatic (live) properties
+		if (id != null) addLiveProperties(azGroup);
+
 		azGroup.m_isNew = true;
 
 		// move in the values from the old AuthzGroup (this includes the id, which we restore)

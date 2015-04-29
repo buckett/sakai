@@ -1,58 +1,29 @@
 package org.sakaiproject.authz.impl;
 
-import org.sakaiproject.entity.api.EntityManager;
 import org.sakaiproject.entity.api.Reference;
 import org.sakaiproject.time.api.Time;
-import org.sakaiproject.time.api.TimeService;
 import org.sakaiproject.user.api.User;
-import org.sakaiproject.user.api.UserDirectoryService;
 import org.sakaiproject.user.api.UserNotDefinedException;
 
 /**
- * This holds references to services which are needed by entities to fulfill their API.
- * This allows easier testing and mocking of the dependent services.
+ * Created by buckett on 29/04/15.
  */
-public class BaseGroupServices {
+public interface BaseGroupServices {
+    Reference newReference(String id);
 
-    private EntityManager entityManager;
-    private DbAuthzGroupService.DbStorage storage;
-    private BaseAuthzGroupService service;
-    private TimeService timeService;
-    private UserDirectoryService userDirectoryService;
+    void completeGet(BaseAuthzGroup azGroup);
 
-    public Reference newReference(String id) {
-        return entityManager.newReference(id);
-    }
+    String getAccessPoint(boolean b);
 
-    public void completeGet(BaseAuthzGroup azGroup) {
-        storage.completeGet(azGroup);
-    }
+    String authzGroupReference(String id);
 
-    public String getAccessPoint(boolean b) {
-        return service.getAccessPoint(b);
-    }
+    Time newTimeGmt(String time);
 
-    public String authzGroupReference(String id) {
-        return service.authzGroupReference(id);
-    }
+    User getUser(String userId) throws UserNotDefinedException;
 
-    public Time newTimeGmt(String time) {
-        return timeService.newTimeGmt(time);
-    }
+    User getAnonymousUser();
 
-    public User getUser(String userId) throws UserNotDefinedException {
-        return userDirectoryService.getUser(userId);
-    }
+    String getUserEid(String userId) throws UserNotDefinedException;
 
-    public User getAnonymousUser() {
-        return userDirectoryService.getAnonymousUser();
-    }
-
-    public String getUserEid(String userId) throws UserNotDefinedException {
-        return userDirectoryService.getUserEid(userId);
-    }
-
-    public Time newTime() {
-        return timeService.newTime();
-    }
+    Time newTime();
 }
