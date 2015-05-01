@@ -1955,22 +1955,8 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 		/**
 		 * {@inheritDoc}
 		 */
-		public boolean isAllowed(String userId, String lock, Collection<String> realms)
+		public boolean isAllowed(String userId, String lock, Collection<String> realms, boolean auth)
 		{
-			if (lock == null) return false;
-
-			boolean auth = (userId != null) && (!userDirectoryService().getAnonymousUser().getId().equals(userId));
-
-			if (realms == null || realms.size() < 1)
-			{
-				M_log.warn("isAllowed(): called with no realms: lock: " + lock + " user: " + userId);
-				if (M_log.isDebugEnabled())
-					M_log.debug("isAllowed():", new Exception());
-				return false;
-			}
-
-			if (M_log.isDebugEnabled())
-				M_log.debug("isAllowed: auth=" + auth + " userId=" + userId + " lock=" + lock + " realms=" + realms);
 
 			String inClause = orInClause(realms.size(), "SAKAI_REALM.REALM_ID");
 
@@ -1979,10 +1965,6 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 			Object[] fields = new Object[2 + (2 * realms.size())];
 			int pos = 0;
 
-			// for roleswap
-			String userSiteRef = null;
-			String siteRef = null;
-
 			// oracle query has different order of parameters
 			String dbAuthzGroupSqlClassName=dbAuthzGroupSql.getClass().getName();
 
@@ -1990,20 +1972,8 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 					fields[pos++] = userId;
 			}
 
-			// populate values for fields
-			for (String realmId : realms)
-			{
-				// These checks for roleswap assume there is at most one of each type of site in the realms collection,
-				// i.e. one ordinary site and one user site
 
-				if (realmId.startsWith(SiteService.REFERENCE_ROOT + Entity.SEPARATOR))		// Starts with /site/
-				{
-					if (userId != null && userId.equals(siteService.getSiteUserId(realmId))) {
-						userSiteRef = realmId;
-					} else {
-						siteRef = realmId; // set this variable for potential use later
-					}
-				}
+			for (String realmId : realms) {
 				fields[pos++] = realmId;
 			}
 			fields[pos++] = lock;
@@ -2015,28 +1985,7 @@ abstract class DbAuthzGroupService extends BaseDbFlatStorage implements BaseAuth
 				fields[pos++] = realmId;
 			}
 
-			/* Delegated access essentially behaves like roleswap except instead of just specifying which role, you can also specify
-			 * the realm as well.  The access map is populated by an Event Listener that listens for dac.checkaccess and is stored in the session
-			 * attribute: delegatedaccess.accessmap.  This is a map of: SiteRef -> String[]{realmId, roleId}.  Delegated access
-			 * will defer to roleswap if it's set.
-			 */
-			String[] delegatedAccessGroupAndRole = getDelegatedAccessRealmRole(siteRef);
-			boolean delegatedAccess = delegatedAccessGroupAndRole != null && delegatedAccessGroupAndRole.length == 2;
 
-			// Would be better to get this initially to make the code more efficient, but the realms collection
-			// does not have a common order for the site's id which is needed to determine if the session variable exists
-			// ZQIAN: since the role swap is only done at the site level, for group reference, use its parent site reference instead.
-			String roleswap = null;
-			Reference ref = entityManager().newReference(siteRef);
-			if (SiteService.GROUP_SUBTYPE.equals(ref.getSubType())) {
-				String containerSiteRef = siteService.siteReference(ref.getContainer());
-			    roleswap = securityService().getUserEffectiveRole(containerSiteRef);
-			    if (roleswap != null) {
-			        siteRef = containerSiteRef;
-			    }
-			} else {
-			    roleswap = securityService().getUserEffectiveRole(siteRef);
-			}
 
 			List results = null;
 

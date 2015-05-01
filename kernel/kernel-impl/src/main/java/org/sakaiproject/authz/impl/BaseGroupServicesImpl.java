@@ -15,7 +15,7 @@ import org.sakaiproject.user.api.UserNotDefinedException;
 public class BaseGroupServicesImpl implements BaseGroupServices {
 
     private EntityManager entityManager;
-    private DbAuthzGroupService.DbStorage storage;
+    private DbAuthzGroupService storage;
     private BaseAuthzGroupService service;
     private TimeService timeService;
 
@@ -27,7 +27,7 @@ public class BaseGroupServicesImpl implements BaseGroupServices {
         this.entityManager = entityManager;
     }
 
-    public void setStorage(DbAuthzGroupService.DbStorage storage) {
+    public void setStorage(DbAuthzGroupService storage) {
         this.storage = storage;
     }
 
