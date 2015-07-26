@@ -10,5 +10,17 @@
         <from>^/js/editor/ckeditor/(.*)$</from>
         <to>/webjars/ckeditor/4.4.7/$1</to>
     </rule>
+    <rule>
+        <from>^/js/bootstrap/(.*)$</from>
+        <to>/webjars/bootstrap/$1</to>
+    </rule>
+    <rule>
+        <from>^/image/silk/(.*)$</from>
+        <to>/webjars/famfamfam-silk/$1</to>
+    </rule>
+    <rule>
+        <from>^/js/moment/(.*)$</from>
+        <to>/webjars/moment/$1</to>
+    </rule>
 
 </urlrewrite>
