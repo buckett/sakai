@@ -667,7 +667,7 @@ public abstract class BaseMailArchiveService extends BaseMessage implements Mail
 		// remove any alias
 		try
 		{
-			aliasService.removeTargetAliases(channelRef);
+			m_aliasService.removeTargetAliases(channelRef);
 		}
 		catch (PermissionException e)
 		{
