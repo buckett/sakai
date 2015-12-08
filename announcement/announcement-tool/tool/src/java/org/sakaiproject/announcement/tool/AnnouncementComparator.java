@@ -16,7 +16,7 @@ import java.util.Comparator;
 /**
  * A Comparator for sorting announcements.
  */
-class AnnouncementComparator implements Comparator {
+class AnnouncementComparator implements Comparator<AnnouncementMessage> {
     // the criteria
     private String m_criteria = null;
 
@@ -52,17 +52,17 @@ class AnnouncementComparator implements Comparator {
     /**
      * implementing the compare function
      *
-     * @param o1 The first object
-     * @param o2 The second object
-     * @return The compare result. 1 is o1 < o2; -1 otherwise
+     * @param a1 The first object
+     * @param a2 The second object
+     * @return The compare result. 1 is a1 < a2; -1 otherwise
      */
-    public int compare(Object o1, Object o2) {
+    public int compare(AnnouncementMessage a1, AnnouncementMessage a2) {
         int result = -1;
 
         if (m_criteria.equals(AnnouncementAction.SORT_SUBJECT)) {
             // sorted by the discussion message subject
-            result = collator.compare(((AnnouncementMessage) o1).getAnnouncementHeader().getSubject(),
-                    ((AnnouncementMessage) o2).getAnnouncementHeader().getSubject());
+            result = collator.compare(((AnnouncementMessage) a1).getAnnouncementHeader().getSubject(),
+                    ((AnnouncementMessage) a2).getAnnouncementHeader().getSubject());
 
         } else if (m_criteria.equals(AnnouncementAction.SORT_DATE)) {
 
@@ -70,19 +70,19 @@ class AnnouncementComparator implements Comparator {
             Time o2ModDate = null;
 
             try {
-                o1ModDate = ((AnnouncementMessage) o1).getProperties().getTimeProperty(AnnouncementService.MOD_DATE);
+                o1ModDate = ((AnnouncementMessage) a1).getProperties().getTimeProperty(AnnouncementService.MOD_DATE);
             } catch (Exception e) {
                 // release date not set, use the date in header
                 // NOTE: this is an edge use case for courses with pre-existing announcements that do not yet have MOD_DATE
-                o1ModDate = ((AnnouncementMessage) o1).getHeader().getDate();
+                o1ModDate = ((AnnouncementMessage) a1).getHeader().getDate();
             }
 
             try {
-                o2ModDate = ((AnnouncementMessage) o2).getProperties().getTimeProperty(AnnouncementService.MOD_DATE);
+                o2ModDate = ((AnnouncementMessage) a2).getProperties().getTimeProperty(AnnouncementService.MOD_DATE);
             } catch (Exception e) {
                 // release date not set, use the date in the header
                 // NOTE: this is an edge use case for courses with pre-existing announcements that do not yet have MOD_DATE
-                o2ModDate = ((AnnouncementMessage) o2).getHeader().getDate();
+                o2ModDate = ((AnnouncementMessage) a2).getHeader().getDate();
             }
 
             if (o1ModDate != null && o2ModDate != null) {
@@ -96,8 +96,8 @@ class AnnouncementComparator implements Comparator {
                 return 0;
             }
         } else if (m_criteria.equals(AnnouncementAction.SORT_MESSAGE_ORDER)) {
-            int order1 = ((AnnouncementMessage) o1).getAnnouncementHeader().getMessage_order();
-            int order2 = ((AnnouncementMessage) o2).getAnnouncementHeader().getMessage_order();
+            int order1 = ((AnnouncementMessage) a1).getAnnouncementHeader().getMessage_order();
+            int order2 = ((AnnouncementMessage) a2).getAnnouncementHeader().getMessage_order();
             // sorted by the message order
             if (order1 < order2) {
                 result = -1;
@@ -111,13 +111,13 @@ class AnnouncementComparator implements Comparator {
             Time o2releaseDate = null;
 
             try {
-                o1releaseDate = ((AnnouncementMessage) o1).getProperties().getTimeProperty(AnnouncementService.RELEASE_DATE);
+                o1releaseDate = ((AnnouncementMessage) a1).getProperties().getTimeProperty(AnnouncementService.RELEASE_DATE);
             } catch (Exception e) {
                 // release date not set, go on
             }
 
             try {
-                o2releaseDate = ((AnnouncementMessage) o2).getProperties().getTimeProperty(AnnouncementService.RELEASE_DATE);
+                o2releaseDate = ((AnnouncementMessage) a2).getProperties().getTimeProperty(AnnouncementService.RELEASE_DATE);
             } catch (Exception e) {
                 // release date not set, go on
             }
@@ -136,13 +136,13 @@ class AnnouncementComparator implements Comparator {
             Time o2retractDate = null;
 
             try {
-                o1retractDate = ((AnnouncementMessage) o1).getProperties().getTimeProperty(AnnouncementService.RETRACT_DATE);
+                o1retractDate = ((AnnouncementMessage) a1).getProperties().getTimeProperty(AnnouncementService.RETRACT_DATE);
             } catch (Exception e) {
                 // release date not set, go on
             }
 
             try {
-                o2retractDate = ((AnnouncementMessage) o2).getProperties().getTimeProperty(AnnouncementService.RETRACT_DATE);
+                o2retractDate = ((AnnouncementMessage) a2).getProperties().getTimeProperty(AnnouncementService.RETRACT_DATE);
             } catch (Exception e) {
                 // release date not set, go on
             }
@@ -158,33 +158,33 @@ class AnnouncementComparator implements Comparator {
             }
         } else if (m_criteria.equals(AnnouncementAction.SORT_FROM)) {
             // sorted by the discussion message subject
-            result = collator.compare(((AnnouncementMessage) o1).getAnnouncementHeader().getFrom().getSortName(),
-                    ((AnnouncementMessage) o2).getAnnouncementHeader().getFrom().getSortName());
+            result = collator.compare(((AnnouncementMessage) a1).getAnnouncementHeader().getFrom().getSortName(),
+                    ((AnnouncementMessage) a2).getAnnouncementHeader().getFrom().getSortName());
         } else if (m_criteria.equals(AnnouncementAction.SORT_CHANNEL)) {
             // sorted by the channel name.
-            result = collator.compare(((AnnouncementAction.AnnouncementWrapper) o1).getChannelDisplayName(),
-                    ((AnnouncementAction.AnnouncementWrapper) o2).getChannelDisplayName());
+            result = collator.compare(((AnnouncementAction.AnnouncementWrapper) a1).getChannelDisplayName(),
+                    ((AnnouncementAction.AnnouncementWrapper) a2).getChannelDisplayName());
         } else if (m_criteria.equals(AnnouncementAction.SORT_PUBLIC)) {
             // sorted by the public view attribute
-            String factor1 = ((AnnouncementMessage) o1).getProperties().getProperty(ResourceProperties.PROP_PUBVIEW);
+            String factor1 = ((AnnouncementMessage) a1).getProperties().getProperty(ResourceProperties.PROP_PUBVIEW);
             if (factor1 == null) factor1 = "false";
-            String factor2 = ((AnnouncementMessage) o2).getProperties().getProperty(ResourceProperties.PROP_PUBVIEW);
+            String factor2 = ((AnnouncementMessage) a2).getProperties().getProperty(ResourceProperties.PROP_PUBVIEW);
             if (factor2 == null) factor2 = "false";
             result = collator.compare(factor1, factor2);
         } else if (m_criteria.equals(AnnouncementAction.SORT_FOR)) {
             // sorted by the public view attribute
-            String factor1 = ((AnnouncementAction.AnnouncementWrapper) o1).getRange();
-            String factor2 = ((AnnouncementAction.AnnouncementWrapper) o2).getRange();
+            String factor1 = ((AnnouncementAction.AnnouncementWrapper) a1).getRange();
+            String factor2 = ((AnnouncementAction.AnnouncementWrapper) a2).getRange();
             result = collator.compare(factor1, factor2);
         } else if (m_criteria.equals(AnnouncementAction.SORT_GROUPTITLE)) {
             // sorted by the group title
-            String factor1 = ((Group) o1).getTitle();
-            String factor2 = ((Group) o2).getTitle();
+            String factor1 = ((Group) a1).getTitle();
+            String factor2 = ((Group) a2).getTitle();
             result = collator.compare(factor1, factor2);
         } else if (m_criteria.equals(AnnouncementAction.SORT_GROUPDESCRIPTION)) {
             // sorted by the group title
-            String factor1 = ((Group) o1).getDescription();
-            String factor2 = ((Group) o2).getDescription();
+            String factor1 = ((Group) a1).getDescription();
+            String factor2 = ((Group) a2).getDescription();
             if (factor1 == null) {
                 factor1 = "";
             }
