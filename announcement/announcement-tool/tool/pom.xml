@@ -89,6 +89,19 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <version>1.10.19</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <!-- Needed to mak the testing of time easier -->
+            <groupId>org.sakaiproject.kernel</groupId>
+            <artifactId>sakai-kernel-impl</artifactId>
+            <version>11-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
