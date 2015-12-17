@@ -24,12 +24,15 @@ import org.sakaiproject.user.api.UserDirectoryService;
 import org.sakaiproject.util.ResourceLoader;
 import org.sakaiproject.util.Validator;
 import org.sakaiproject.util.Web;
-import org.subethamail.smtp.*;
 import org.subethamail.smtp.MessageContext;
+import org.subethamail.smtp.*;
 import org.subethamail.smtp.server.SMTPServer;
 
 import javax.mail.*;
-import javax.mail.internet.*;
+import javax.mail.internet.ContentType;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeUtility;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
