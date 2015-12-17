@@ -148,21 +148,6 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
             }
 
-
-            /**
-             * Just wrapper to parse an address.
-             * @param address The email address.
-             * @return An InternerAddress for the email address.
-             */
-            protected InternetAddress parseAddress(String address) {
-                try {
-                    return new InternetAddress(address);
-                } catch (AddressException e) {
-                    // This should never happen as it should have already been validated.
-                    throw new RejectException("Not a valid address: " + address);
-                }
-            }
-
             @Override
             public void data(InputStream data) throws RejectException, TooMuchDataException, IOException {
                 // Want to buffer a little bit in memory and then write it all out to disk if it's large.
@@ -254,7 +239,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                             try {
                                 if (channel.getReplyToList()) {
                                     List<String> modifiedHeaders = new Vector<String>();
-                                    for (String header : (List<String>) mailHeaders) {
+                                    for (String header : mailHeaders) {
                                         if (header != null && !header.startsWith("Reply-To:")) {
                                             modifiedHeaders.add(header);
                                         }
@@ -408,9 +393,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                     // skip disabled channels
                     if (!channel.getEnabled()) {
                         // INDICATES that the channel is NOT currently enabled so no messages can be received
-                        if (from.startsWith(POSTMASTER)) {
-                            // Do nothing.
-                        } else {
+                        if (!from.startsWith(POSTMASTER)) {
                             // BOUNCE REPLY - send a message back to the user to let them know their email failed
                             String errMsg = rb.getString("err_email_off") + "\n\n";
                             String mailSupport = StringUtils.trimToNull(serverConfigurationService.getString("mail.support"));
@@ -484,8 +467,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
         if ((users == null) || (users.isEmpty())) return false;
 
         // see if any of them are allowed to add
-        for (Iterator<User> i = users.iterator(); i.hasNext(); ) {
-            User u = (User) i.next();
+        for (User u : users) {
             if (channel.allowAddMessage(u)) return true;
         }
 
@@ -521,11 +503,11 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
     }
 
     protected Integer parseParts(String siteId, Part p, String id, StringBuilder bodyBuf[],
-                                 StringBuilder bodyContentType, List attachments, Integer embedCount)
+                                 StringBuilder bodyContentType, List<Reference> attachments, Integer embedCount)
             throws MessagingException, IOException {
         // increment embedded message counter
         if (p instanceof Message) {
-            embedCount = Integer.valueOf(embedCount.intValue() + 1);
+            embedCount = embedCount + 1;
         }
 
         String type = p.getContentType();
@@ -537,7 +519,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
         // add plain text to bodyBuf[0]
         else if (p.isMimeType("text/plain") && p.getFileName() == null) {
-            Object o = null;
+            Object o;
             // let them convert to text if possible
             // but if bad encaps get the stream and do it ourselves
             try {
@@ -590,7 +572,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
         // add html text to bodyBuf[1]
         else if (p.isMimeType("text/html") && p.getFileName() == null) {
-            Object o = null;
+            Object o;
             // let them convert to text if possible
             // but if bad encaps get the stream and do it ourselves
             try {
@@ -659,7 +641,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
             String name = p.getFileName();
 
             // look for filenames not parsed by getFileName()
-            if (name == null && type.indexOf(NAME_PREFIX) != -1) {
+            if (name == null && type.contains(NAME_PREFIX)) {
                 name = type.substring(type.indexOf(NAME_PREFIX) + NAME_PREFIX.length());
             }
             // ContentType can't handle filenames with spaces or UTF8 characters
@@ -670,7 +652,6 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
             }
 
             ContentType cType = new ContentType(type);
-            String disposition = p.getDisposition();
             int approxSize = p.getSize();
 
             if (name == null) {
@@ -712,15 +693,15 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
                 // add plain/text attachment reference (if plain/text message)
                 if (attachment != null && bodyBuf[0].length() > 0)
-                    bodyBuf[0].append("[see attachment: \"" + name + "\", size: " + bodyBytes.length + " bytes]\n\n");
+                    bodyBuf[0].append("[see attachment: \"").append(name).append("\", size: ").append(bodyBytes.length).append(" bytes]\n\n");
 
                 // add html/text attachment reference (if html/text message)
                 if (attachment != null && bodyBuf[1].length() > 0)
-                    bodyBuf[1].append("<p>[see attachment: \"" + name + "\", size: " + bodyBytes.length + " bytes]</p>");
+                    bodyBuf[1].append("<p>[see attachment: \"").append(name).append("\", size: ").append(bodyBytes.length).append(" bytes]</p>");
 
                 // add plain/text attachment reference (if no plain/text and no html/text)
                 if (attachment != null && bodyBuf[0].length() == 0 && bodyBuf[1].length() == 0)
-                    bodyBuf[0].append("[see attachment: \"" + name + "\", size: " + bodyBytes.length + " bytes]\n\n");
+                    bodyBuf[0].append("[see attachment: \"").append(name).append("\", size: ").append(bodyBytes.length).append(" bytes]\n\n");
             }
         }
 
@@ -730,7 +711,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
     /**
      * Create an attachment, adding it to the list of attachments.
      */
-    protected Reference createAttachment(String siteId, List attachments, String type, String fileName, byte[] body, String id) {
+    protected Reference createAttachment(String siteId, List<Reference> attachments, String type, String fileName, byte[] body, String id) {
         // we just want the file name part - strip off any drive and path stuff
         String name = FilenameUtils.getName(fileName);  //Validator.getFileName(fileName);
         String resourceName = Validator.escapeResourceName(fileName);
