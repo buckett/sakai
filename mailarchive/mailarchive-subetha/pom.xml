@@ -17,7 +17,11 @@
         <url>http://sakaiproject.org/</url>
     </organization>
     <inceptionYear>2014</inceptionYear>
-    <packaging>war</packaging>
+    <packaging>sakai-component</packaging>
+
+    <properties>
+        <deploy.target>components</deploy.target>
+    </properties>
 
     <dependencies>
         <dependency>

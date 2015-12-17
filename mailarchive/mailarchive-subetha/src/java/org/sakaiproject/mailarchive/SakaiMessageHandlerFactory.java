@@ -42,9 +42,8 @@ import java.util.*;
  */
 public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
-
     private Log log = LogFactory.getLog(SakaiMessageHandlerFactory.class);
-    private ResourceLoader rb = new ResourceLoader("sakaimailet");
+    private final ResourceLoader rb = new ResourceLoader("sakaimailet");
 
     /**
      * The user name of the postmaster user - the one who posts incoming mail.
@@ -139,8 +138,9 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                     Recipient recipient = new Recipient();
                     recipient.address = address;
                     recipient.channel = getMailArchiveChannel(address.getLocal());
-
-                    recipients.add(recipient);
+                    if (recipient.channel != null) {
+                        recipients.add(recipient);
+                    }
                 } else {
                     // TODO Correct SMTP error?
                     throw new RejectException(551, "Don't accept mail for: " + address.getDomain());
@@ -181,7 +181,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
                     String subject = StringUtils.trimToNull(msg.getSubject());
 
-                    Enumeration<String> headers = msg.getAllHeaderLines();
+                    Enumeration headers = msg.getAllHeaderLines();
                     List<String> mailHeaders = new Vector<String>();
                     while (headers.hasMoreElements()) {
                         String line = (String) headers.nextElement();
@@ -208,13 +208,11 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                     }
 
                     // process for each recipient
-                    Iterator<Recipient> it = recipients.iterator();
-                    while (it.hasNext()) {
-                        Recipient recipient = it.next();
-
+                    for (Recipient recipient : recipients) {
                         String mailId = recipient.address.getLocal();
                         try {
-                            MailArchiveChannel channel = getMailArchiveChannel(mailId);
+                            MailArchiveChannel channel = recipient.channel;
+                            // Should be redundant as we shouldn't ever have null chennels.
                             if (channel == null) return;
 
                             // prepare the message
@@ -229,7 +227,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
                             try {
                                 StringBuilder bodyContentType = new StringBuilder();
-                                parseParts(siteId, msg, id, bodyBuf, bodyContentType, attachments, Integer.valueOf(-1));
+                                parseParts(siteId, msg, id, bodyBuf, bodyContentType, attachments, -1);
 
                                 if (bodyContentType.length() > 0) {
                                     // save the content type of the message body - which may be different from the
@@ -246,8 +244,8 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                                 log.warn("IOException: service(): msg.getContent() threw: " + e, e);
                             }
 
-                            mailHeaders.add("List-Id: <"+ channel.getId()+ "."+ channel.getContext()
-                                    + "."+ serverConfigurationService.getServerName()+ ">");
+                            mailHeaders.add("List-Id: <" + channel.getId() + "." + channel.getContext()
+                                    + "." + serverConfigurationService.getServerName() + ">");
                             // post the message to the group's channel
                             String body[] = new String[2];
                             body[0] = bodyBuf[0].toString(); // plain/text
@@ -272,11 +270,11 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                                     modifiedHeaders.add("Reply-To: " + replyTo.toString());
 
                                     // post the message to the group's channel
-                                    channel.addMailArchiveMessage(subject, from.toString(), timeService.newTime(sent.getTime()), modifiedHeaders,
+                                    channel.addMailArchiveMessage(subject, from, timeService.newTime(sent.getTime()), modifiedHeaders,
                                             attachments, body);
                                 } else {
                                     // post the message to the group's channel
-                                    channel.addMailArchiveMessage(subject, from.toString(), timeService.newTime(sent.getTime()), mailHeaders,
+                                    channel.addMailArchiveMessage(subject, from, timeService.newTime(sent.getTime()), mailHeaders,
                                             attachments, body);
                                 }
                             } catch (PermissionException pe) {
@@ -305,9 +303,9 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
             /**
              * This checks that we should accept mail for the supplied recipient
-             * @param mailId
-             * @return
-             * @throws IdUnusedException
+             * @param mailId The host local mail ID.
+             * @return The channel that the mail should be appended to or <code>null</code> if it should be dropped.
+             * @throws RejectException If the channel couldn't be found or the sender isn't allowed to post to it.
              */
             protected MailArchiveChannel getMailArchiveChannel(String mailId) throws RejectException {
 
@@ -346,7 +344,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                         String errMsg = rb.getString("err_not_member") + "\n\n";
                         String mailSupport = StringUtils.trimToNull(serverConfigurationService.getString("mail.support"));
                         if (mailSupport != null) {
-                            errMsg += (String) rb.getFormattedMessage("err_questions", new Object[]{mailSupport}) + "\n";
+                            errMsg += rb.getFormattedMessage("err_questions", mailSupport) + "\n";
                         }
                         throw new RejectException(450, errMsg);
                     }
@@ -391,7 +389,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                             String errMsg = rb.getString("err_not_member") + "\n\n";
                             String mailSupport = StringUtils.trimToNull(serverConfigurationService.getString("mail.support"));
                             if (mailSupport != null) {
-                                errMsg += (String) rb.getFormattedMessage("err_questions", new Object[]{mailSupport}) + "\n";
+                                errMsg += rb.getFormattedMessage("err_questions", mailSupport) + "\n";
                             }
                             throw new RejectException(450, errMsg);
                         }
@@ -401,7 +399,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                     }
                     if (channel == null) {
                         if (log.isDebugEnabled()) {
-                            log.debug("Incoming message mailId (" + mailId + "), channelRef (" + channelRef + ") could not be resolved and is null: " + channel);
+                            log.debug("Incoming message mailId (" + mailId + "), channelRef (" + channelRef + ") could not be resolved and is null.");
                         }
                         // this should never happen but it is here just in case
                         throw new IdUnusedException(mailId);
@@ -417,7 +415,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                             String errMsg = rb.getString("err_email_off") + "\n\n";
                             String mailSupport = StringUtils.trimToNull(serverConfigurationService.getString("mail.support"));
                             if (mailSupport != null) {
-                                errMsg += (String) rb.getFormattedMessage("err_questions", new Object[]{mailSupport}) + "\n";
+                                errMsg += rb.getFormattedMessage("err_questions", mailSupport) + "\n";
                             }
                             throw new RejectException(450, errMsg);
                         }
@@ -440,22 +438,25 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                             String errMsg = rb.getString("err_not_member") + "\n\n";
                             String mailSupport = StringUtils.trimToNull(serverConfigurationService.getString("mail.support"));
                             if (mailSupport != null) {
-                                errMsg += (String) rb.getFormattedMessage("err_questions", new Object[]{mailSupport}) + "\n";
+                                errMsg += rb.getFormattedMessage("err_questions", mailSupport) + "\n";
                             }
                             throw new RejectException(450, errMsg);
                         }
                     }
                     return channel;
                 } catch (IdUnusedException e) {
-                    if (POSTMASTER.equals(mailId) || from.startsWith(POSTMASTER + "@")) {
-                        // TODO
+                    // if this is to the postmaster, and there's no site, channel or alias for the postmaster,
+                    // then quietly eat the message
+                    if (!POSTMASTER.equals(mailId) && !from.startsWith(POSTMASTER + "@")) {
+                        String errMsg = rb.getString("err_addr_unknown") + "\n\n";
+                        String mailSupport = StringUtils.trimToNull(serverConfigurationService.getString("mail.support"));
+                        if (mailSupport != null) {
+                            errMsg += rb.getFormattedMessage("err_questions", mailSupport) + "\n";
+                        }
+                        throw new RejectException(450, errMsg);
+                    } else {
+                        return null;
                     }
-                    String errMsg = rb.getString("err_addr_unknown") + "\n\n";
-                    String mailSupport = StringUtils.trimToNull(serverConfigurationService.getString("mail.support"));
-                    if (mailSupport != null) {
-                        errMsg += (String) rb.getFormattedMessage("err_questions", new Object[]{mailSupport}) + "\n";
-                    }
-                    throw new RejectException(450, errMsg);
                 }
             }
 
