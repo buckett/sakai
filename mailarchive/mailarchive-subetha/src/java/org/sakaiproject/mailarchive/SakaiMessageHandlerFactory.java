@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This contains lots of the code from the original SakaiMailet.
@@ -240,31 +241,24 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                             body[1] = bodyBuf[1].toString(); // html/text
 
                             try {
+                                List<String> archiveHeaders = mailHeaders;
                                 if (channel.getReplyToList()) {
-                                    List<String> modifiedHeaders = new Vector<String>();
-                                    for (String header : mailHeaders) {
-                                        if (header != null && !header.startsWith("Reply-To:")) {
-                                            modifiedHeaders.add(header);
-                                        }
-                                    }
+                                    archiveHeaders = mailHeaders.stream()
+                                            .filter(h -> !h.startsWith("Reply-To:")).collect(Collectors.toList());
                                     // Note: can't use recipient, since it's host may be configured as mailId@myhost.james
                                     String mailHost = serverConfigurationService.getServerName();
 
-                                    // TODO Must be easier way,
+                                    // InternetAddress does validation
                                     InternetAddress replyTo = new InternetAddress(mailId + "@" + mailHost);
                                     if (log.isDebugEnabled()) {
                                         log.debug("Set Reply-To address to " + replyTo.toString());
                                     }
-                                    modifiedHeaders.add("Reply-To: " + replyTo.toString());
+                                    archiveHeaders.add("Reply-To: " + replyTo.toString());
 
-                                    // post the message to the group's channel
-                                    channel.addMailArchiveMessage(subject, from, timeService.newTime(sent.getTime()), modifiedHeaders,
-                                            attachments, body);
-                                } else {
-                                    // post the message to the group's channel
-                                    channel.addMailArchiveMessage(subject, from, timeService.newTime(sent.getTime()), mailHeaders,
-                                            attachments, body);
                                 }
+                                // post the message to the group's channel
+                                channel.addMailArchiveMessage(subject, from, timeService.newTime(sent.getTime()),
+                                    archiveHeaders, attachments, body);
                             } catch (PermissionException pe) {
                                 // INDICATES that the current user does not have permission to add or get the mail archive message from the current channel
                                 // This generally should not happen because the current user should be the postmaster
