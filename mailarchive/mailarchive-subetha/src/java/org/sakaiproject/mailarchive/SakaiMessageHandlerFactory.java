@@ -461,45 +461,22 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
         // find the users with this email address
         Collection<User> users = userDirectoryService.findUsersByEmail(fromAddr);
 
-        // if none found
-        if ((users == null) || (users.isEmpty())) return false;
-
-        // see if any of them are allowed to add
-        for (User u : users) {
-            if (channel.allowAddMessage(u)) return true;
-        }
-
-        return false;
+        // Allow if any user can post messages
+        return users.stream().anyMatch(user -> channel.allowAddMessage(user));
     }
-
 
     /**
-     * Read in a stream from the mime body into a byte array
+     * Breaks email messages into parts which can be saved as files (saves as attachments) or viewed as plain text (added to body of message).
+     *
+     * @param siteId          Site associated with attachments, if any
+     * @param p               The message-part embedded in a message..
+     * @param id              The string containing the message's id.
+     * @param bodyBuf         The string-buffers in which the plain/text and/or html/text message body is being built.
+     * @param bodyContentType The value of the Content-Type header for the mesage body.
+     * @param attachments     The ReferenceVector in which references to attachments are collected.
+     * @param embedCount      An Integer that counts embedded messages (outer message is zero).
+     * @return Value of embedCount (updated if this call processed any embedded messages).
      */
-    protected byte[] readBody(int approxSize, InputStream stream) {
-        // the size is APPROXIMATE, and is sometimes wrong -
-        // so read the body into a ByteArrayOutputStream
-        // that will grow if necessary
-        if (approxSize <= 0) return null;
-
-        ByteArrayOutputStream baos = new ByteArrayOutputStream(approxSize);
-        byte[] buff = new byte[10000];
-        try {
-            //int lenRead = 0;
-            int count = 0;
-            while (count >= 0) {
-                count = stream.read(buff, 0, buff.length);
-                if (count <= 0) break;
-                baos.write(buff, 0, count);
-                //lenRead += count;
-            }
-        } catch (IOException e) {
-            log.warn("readBody(): " + e);
-        }
-
-        return baos.toByteArray();
-    }
-
     protected Integer parseParts(String siteId, Part p, String id, StringBuilder bodyBuf[],
                                  StringBuilder bodyContentType, List<Reference> attachments, Integer embedCount)
             throws MessagingException, IOException {
