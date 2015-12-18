@@ -137,8 +137,8 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
             public void recipient(String to) throws RejectException {
                 SplitEmailAddress address = SplitEmailAddress.parse(to);
 
-                if (serverConfigurationService.getServerName().equals(address.getDomain()) ||
-                        serverConfigurationService.getServerNameAliases().contains(address.getDomain())) {
+                if (serverConfigurationService.getServerName().equals(address.getDomain())) {
+                    // || serverConfigurationService.getServerNameAliases().contains(address.getDomain())) {
                     Recipient recipient = new Recipient();
                     recipient.address = address;
                     recipient.channel = getMailArchiveChannel(address.getLocal());
