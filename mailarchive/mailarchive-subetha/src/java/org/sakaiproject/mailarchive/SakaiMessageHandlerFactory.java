@@ -163,6 +163,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
                 try {
                     // TODO Proper properties.
+                    // The reads the entire body of the message into a byte array which is far from optimal.
                     MimeMessage msg = new MimeMessage(Session.getDefaultInstance(new Properties()), data);
 
                     Date sent = msg.getSentDate();
