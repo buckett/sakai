@@ -33,6 +33,7 @@ import javax.mail.internet.ContentType;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeUtility;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -627,7 +628,6 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
             }
 
             ContentType cType = new ContentType(type);
-            int approxSize = p.getSize();
 
             if (name == null) {
                 name = "unknown";
@@ -661,22 +661,21 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
             }
 
             // read the attachments bytes, and create it as an attachment in content hosting
-            byte[] bodyBytes = readBody(approxSize, p.getInputStream());
-            if ((bodyBytes != null) && (bodyBytes.length > 0)) {
+            if (p.getSize() > 0) {
                 // can we ignore the attachment it it's just whitespace chars??
-                Reference attachment = createAttachment(siteId, attachments, cType.getBaseType(), name, bodyBytes, id);
+                Optional<ContentResource> attachment = createAttachment(siteId, attachments, cType.getBaseType(), name, p.getInputStream(), id);
 
                 // add plain/text attachment reference (if plain/text message)
-                if (attachment != null && bodyBuf[0].length() > 0)
-                    bodyBuf[0].append("[see attachment: \"").append(name).append("\", size: ").append(bodyBytes.length).append(" bytes]\n\n");
+                if (attachment.isPresent() && bodyBuf[0].length() > 0)
+                    bodyBuf[0].append("[see attachment: \"").append(name).append("\", size: ").append(attachment.get().getContentLength()).append(" bytes]\n\n");
 
                 // add html/text attachment reference (if html/text message)
-                if (attachment != null && bodyBuf[1].length() > 0)
-                    bodyBuf[1].append("<p>[see attachment: \"").append(name).append("\", size: ").append(bodyBytes.length).append(" bytes]</p>");
+                if (attachment.isPresent() && bodyBuf[1].length() > 0)
+                    bodyBuf[1].append("<p>[see attachment: \"").append(name).append("\", size: ").append(attachment.get().getContentLength()).append(" bytes]</p>");
 
                 // add plain/text attachment reference (if no plain/text and no html/text)
-                if (attachment != null && bodyBuf[0].length() == 0 && bodyBuf[1].length() == 0)
-                    bodyBuf[0].append("[see attachment: \"").append(name).append("\", size: ").append(bodyBytes.length).append(" bytes]\n\n");
+                if (attachment.isPresent() && bodyBuf[0].length() == 0 && bodyBuf[1].length() == 0)
+                    bodyBuf[0].append("[see attachment: \"").append(name).append("\", size: ").append(attachment.get().getContentLength()).append(" bytes]\n\n");
             }
         }
 
@@ -685,8 +684,9 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
     /**
      * Create an attachment, adding it to the list of attachments.
+     * @return An optional containing the attachment or an empty optional.
      */
-    protected Reference createAttachment(String siteId, List<Reference> attachments, String type, String fileName, byte[] body, String id) {
+    protected Optional<ContentResource> createAttachment(String siteId, List<Reference> attachments, String type, String fileName, InputStream in, String id) {
         // we just want the file name part - strip off any drive and path stuff
         String name = FilenameUtils.getName(fileName);  //Validator.getFileName(fileName);
         String resourceName = Validator.escapeResourceName(fileName);
@@ -700,25 +700,28 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
         try {
             ContentResource attachment;
             if (siteId == null) {
-                attachment = contentHostingService.addAttachmentResource(resourceName, type, body, props);
+                attachment = contentHostingService.addAttachmentResource(resourceName, type, in, props);
             } else {
                 attachment = contentHostingService.addAttachmentResource(
-                        resourceName, siteId, null, type, body, props);
+                        resourceName, siteId, null, type, in, props);
             }
 
             // add a dereferencer for this to the attachments
             Reference ref = entityManager.newReference(attachment.getReference());
             attachments.add(ref);
 
-            log.debug(id + " : attachment: " + ref.getReference() + " size: " + body.length);
+            log.debug(id + " : attachment: " + ref.getReference() + " size: " + attachment.getContentLength());
 
-            return ref;
+            return Optional.of(attachment);
         } catch (Exception any) {
             log.warn(id + " : exception adding attachment resource: " + name + " : " + any.toString());
-            return null;
+            return Optional.empty();
         }
     }
 
+    /**
+     * This is just a holder so we can keep the address and the channel we think it's going to in one place.
+     */
     protected class Recipient {
         protected SplitEmailAddress address;
         protected MailArchiveChannel channel;
