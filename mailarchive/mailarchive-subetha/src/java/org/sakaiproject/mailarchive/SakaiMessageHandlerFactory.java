@@ -15,7 +15,7 @@ import org.sakaiproject.entity.api.ResourcePropertiesEdit;
 import org.sakaiproject.exception.IdUnusedException;
 import org.sakaiproject.exception.PermissionException;
 import org.sakaiproject.mailarchive.api.MailArchiveChannel;
-import org.sakaiproject.mailarchive.cover.MailArchiveService;
+import org.sakaiproject.mailarchive.api.MailArchiveService;
 import org.sakaiproject.site.api.SiteService;
 import org.sakaiproject.thread_local.api.ThreadLocalManager;
 import org.sakaiproject.time.api.TimeService;
@@ -33,7 +33,6 @@ import javax.mail.internet.ContentType;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeUtility;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -65,6 +64,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
     private TimeService timeService;
     private ThreadLocalManager threadLocalManager;
     private ContentHostingService contentHostingService;
+    private MailArchiveService mailArchiveService;
 
     public void setThreadLocalManager(ThreadLocalManager threadLocalManager) {
         this.threadLocalManager = threadLocalManager;
@@ -98,6 +98,9 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
         this.serverConfigurationService = serverConfigurationService;
     }
 
+    public void setMailArchiveService(MailArchiveService mailArchiveService) {
+        this.mailArchiveService = mailArchiveService;
+    }
 
     // used when parsing email header parts
     private static final String NAME_PREFIX = "name=";
@@ -120,6 +123,14 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
         if (server != null) {
             server.stop();
         }
+    }
+
+    /**
+     * Get the started SMTP server. This is mainly here so that in set setup we can query it.
+     * @return The started test server or <code>null</code> if there isn't one.
+     */
+    public SMTPServer getServer() {
+        return server;
     }
 
     @Override
@@ -309,9 +320,9 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                     MailArchiveChannel channel = null;
 
                     // first, assume the mailId is a site id
-                    String channelRef = MailArchiveService.channelReference(mailId, SiteService.MAIN_CONTAINER);
+                    String channelRef = mailArchiveService.channelReference(mailId, SiteService.MAIN_CONTAINER);
                     try {
-                        channel = MailArchiveService.getMailArchiveChannel(channelRef);
+                        channel = mailArchiveService.getMailArchiveChannel(channelRef);
                         if (log.isDebugEnabled()) {
                             log.debug("Incoming message mailId (" + mailId + ") IS a valid site channel reference");
                         }
@@ -341,7 +352,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
                         if (ref.getType().equals(SiteService.APPLICATION_ID)) {
                             // ref is a site
                             // now we have a site reference, try for it's channel
-                            channelRef = MailArchiveService.channelReference(ref.getId(), SiteService.MAIN_CONTAINER);
+                            channelRef = mailArchiveService.channelReference(ref.getId(), SiteService.MAIN_CONTAINER);
                             if (log.isDebugEnabled()) {
                                 log.debug("Incoming message mailId (" + mailId + ") IS a valid site reference (" + ref.getId() + ")");
                             }
@@ -364,7 +375,7 @@ public class SakaiMessageHandlerFactory implements MessageHandlerFactory {
 
                         // if there's no channel for this site, it will throw the IdUnusedException caught below
                         try {
-                            channel = MailArchiveService.getMailArchiveChannel(channelRef);
+                            channel = mailArchiveService.getMailArchiveChannel(channelRef);
                         } catch (PermissionException e) {
                             // INDICATES the channel is valid but the user has no permission to access it
                             // This generally should not happen because the current user should be the postmaster
