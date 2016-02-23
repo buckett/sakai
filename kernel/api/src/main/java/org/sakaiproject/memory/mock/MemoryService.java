@@ -36,32 +36,10 @@ public class MemoryService implements org.sakaiproject.memory.api.MemoryService 
     ConcurrentHashMap<String, Cache> caches = new ConcurrentHashMap<String, Cache>();
 
     @Override
-    public long getAvailableMemory() {
-        return 0;
-    }
-
-    @Override
     public void resetCachers() {
         for (Cache cache: caches.values()) {
             cache.clear();
         }
-    }
-
-    @Override
-    public void evictExpiredMembers() {
-        // just a lame implementation
-        resetCachers();
-    }
-
-    @SuppressWarnings("deprecation") // TODO remove this
-    @Override
-    public Cache newCache(String cacheName, CacheRefresher refresher, String pattern) {
-        return getCache(cacheName);
-    }
-
-    @Override
-    public Cache newCache(String cacheName, String pattern) {
-        return newCache(cacheName, null, pattern);
     }
 
     @Override
@@ -76,7 +54,7 @@ public class MemoryService implements org.sakaiproject.memory.api.MemoryService 
 
     @Override
     public <K, V, C extends Configuration<K, V>> Cache createCache(String cacheName, C configuration) {
-        return newCache(cacheName, null, null);
+        return getCache(cacheName);
     }
 
     @Override
@@ -107,7 +85,7 @@ public class MemoryService implements org.sakaiproject.memory.api.MemoryService 
 
     @Override
     public Cache newCache(String cacheName) {
-        return newCache(cacheName, null, null);
+        return getCache(cacheName);
     }
 
     @Override

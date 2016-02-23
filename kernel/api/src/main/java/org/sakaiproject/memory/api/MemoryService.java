@@ -201,27 +201,11 @@ public interface MemoryService // CacheManager
     // SAKAI specific methods (non JSR-107)
 
     /**
-     * Report the amount of unused and available memory for the JVM
-     *
-     * @return the amount of available memory.
-     * @deprecated since 2.9 - this should be done with a utility if that is even useful
-     */
-    public long getAvailableMemory();
-
-    /**
      * Cause less memory to be used by clearing any and all caches.
      *
      * @throws SecurityException if the current user is not a super admin
      */
     void resetCachers();
-
-    /**
-     * Evict all expired objects from the in-memory caches
-     *
-     * @throws SecurityException if the current user is not a super admin
-     * @deprecated since 2.9 - this is dangerous to run with a distributed caching system
-     */
-    void evictExpiredMembers();
 
     /**
      * Construct a Cache with the given name (often this is the fully qualified classpath of the api
@@ -241,35 +225,6 @@ public interface MemoryService // CacheManager
      * @return A string representing the current status of all caches
      */
     public String getStatus();
-
-    /**
-     * Construct a Cache. Attempts to keep complete on Event notification by calling the refresher.
-     *
-     * @param cacheName Load a defined bean from ComponentManager or create a default cache with this name.
-     * @param refresher
-     *        The object that will handle refreshing of event notified modified or added entries.
-     * @param pattern
-     *        The "startsWith()" string for all resources that may be in this cache - if null, don't watch events for updates.
-     *        If this is set then it enables automatic removal of the matching cache entry key (to the event reference value)
-     *        when the event reference starts with this pattern string.
-     * @deprecated since Sakai 2.9, pattern matching no longer needed or supported, 07/Oct/2007 -AZ
-     */
-    @SuppressWarnings("deprecation") // TODO remove this
-    Cache newCache(String cacheName, CacheRefresher refresher, String pattern); // used in NotificationCache, AssignmentService(3), BaseContentService, BaseMessage(3)
-
-    // DEPRECATED METHODS BELOW - Remove for Sakai 11
-
-    /**
-     * Construct a Cache. Attempts to keep complete on Event notification by calling the refresher.
-     *
-     * @param cacheName Load a defined bean from ComponentManager or create a default cache with this name.
-     * @param pattern
-     *        The "startsWith()" string for all resources that may be in this cache - if null, don't watch events for updates.
-     *        If this is set then it enables automatic removal of the matching cache entry key (to the event reference value)
-     *        when the event reference starts with this pattern string.
-     * @deprecated since Sakai 2.9, pattern matching no longer needed or supported, 07/Oct/2007 -AZ
-     */
-    Cache newCache(String cacheName, String pattern); // used in BaseAliasService, SiteCacheImpl, BaseUserDirectoryService (2), BaseCalendarService(3), ShareUserCacheImpl
 
     /**
      * Thrown to indicate an exception has occurred in the Cache.

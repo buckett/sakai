@@ -169,18 +169,8 @@ public class BaseMemoryService implements MemoryService {
     }
 
     @Override
-    public long getAvailableMemory() {
-        return memoryService.getAvailableMemory();
-    }
-
-    @Override
     public void resetCachers() {
         memoryService.resetCachers();
-    }
-
-    @Override
-    public void evictExpiredMembers() {
-        memoryService.evictExpiredMembers();
     }
 
     @Override
@@ -193,25 +183,6 @@ public class BaseMemoryService implements MemoryService {
         return memoryService.getStatus();
     }
 
-    // DEPRECATED METHODS BELOW
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public Cache newCache(String cacheName, CacheRefresher refresher, String pattern) {
-        if (refresher != null) {
-            log.warn("Creating refresher/pattern Cache("+cacheName+"), CacheRefresher is not supported anymore (and in fact is broken since 2.8), CacheRefresher will not be called and is deprecated and will be removed in the next release");
-            return getCache(cacheName);
-        } else {
-            return newCache(cacheName, pattern);
-        }
-    }
-
-    @Override
-    public Cache newCache(String cacheName, String pattern) {
-        log.warn("Creating pattern Cache("+cacheName+"), pattern is deprecated and will no longer work in the next release");
-        //noinspection deprecation
-        return memoryService.newCache(cacheName, pattern);
-    }
 
     // SETTERS
 

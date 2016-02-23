@@ -157,31 +157,12 @@ public class EhcacheMemoryService implements MemoryService {
     }
 
     @Override
-    public long getAvailableMemory() {
-        return Runtime.getRuntime().freeMemory();
-    }
-
-    @Override
     public void resetCachers() {
         if (!getSecurityService().isSuperUser()) {
             throw new SecurityException("Only super admin can reset cachers, current user not super admin");
         }
         if (this.cacheManager != null) {
             this.cacheManager.clearAll();
-        }
-    }
-
-    @Override
-    public void evictExpiredMembers() {
-        if (!getSecurityService().isSuperUser()) {
-            throw new SecurityException("Only super admin can evict caches, current user not super admin");
-        }
-        if (this.cacheManager != null) {
-            String[] allCacheNames = cacheManager.getCacheNames();
-            for (String cacheName : allCacheNames) {
-                Ehcache cache = cacheManager.getCache(cacheName);
-                cache.evictExpiredElements();
-            }
         }
     }
 
@@ -307,18 +288,6 @@ public class EhcacheMemoryService implements MemoryService {
     }
 
     // DEPRECATED METHODS BELOW
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public Cache newCache(String cacheName, CacheRefresher refresher, String pattern) {
-        return getCache(cacheName);
-    }
-
-    @Override
-    public Cache newCache(String cacheName, String pattern) {
-        log.warn("Creating pattern Cache("+cacheName+"), pattern is not supported in the distributed MemoryService implementation, the pattern update event entry removal will not happen!");
-        return getCache(cacheName);
-    }
 
     /**
      * @param cacheName the name of the cache

@@ -876,10 +876,7 @@ SiteContentAdvisorProvider, SiteContentAdvisorTypeRegistry, EntityTransferrerRef
 			// make the cache
 			if (m_caching)
 			{
-				m_cache = m_memoryService
-				.newCache(
-						"org.sakaiproject.content.api.ContentHostingService.cache",
-						this, getAccessPoint(true));
+				m_cache = m_memoryService.getCache("org.sakaiproject.content.api.ContentHostingService.cache");
 			}
 
 			// register a transient notification for resources

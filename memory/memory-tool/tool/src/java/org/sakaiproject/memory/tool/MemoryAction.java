@@ -57,8 +57,7 @@ public class MemoryAction extends VelocityPortletPaneledAction
 		context.put(Menu.CONTEXT_ACTION, state.getAttribute(STATE_ACTION));
 
 		// put the current available memory into the context
-		context.put("memory", Long.toString(MemoryServiceLocator.getInstance()
-				.getAvailableMemory()));
+		context.put("memory", Long.toString(Runtime.getRuntime().freeMemory()));
 
 		// status, if there
 		if (state.getAttribute("status") != null)
@@ -81,25 +80,6 @@ public class MemoryAction extends VelocityPortletPaneledAction
 		try
 		{
 			MemoryServiceLocator.getInstance().resetCachers();
-		}
-		catch (SecurityException e)
-		{
-			state.setAttribute("message", rb.getString("memory.notpermis"));
-		}
-
-	} // doReset
-	
-	
-	/**
-	 * doNew called when "eventSubmit_doReset" is in the request parameters to reset memory useage (caches)
-	 */
-	public void doEvict(RunData data, Context context)
-	{
-		SessionState state = ((JetspeedRunData) data).getPortletSessionState(((JetspeedRunData) data).getJs_peid());
-
-		try
-		{
-			MemoryServiceLocator.getInstance().evictExpiredMembers();
 		}
 		catch (SecurityException e)
 		{

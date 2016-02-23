@@ -158,11 +158,6 @@ public class HazelcastMemoryService implements MemoryService {
     }
 
     @Override
-    public long getAvailableMemory() {
-        return Runtime.getRuntime().freeMemory();
-    }
-
-    @Override
     public void resetCachers() {
         if (!getSecurityService().isSuperUser()) {
             throw new SecurityException("Only super admin can reset cachers, current user not super admin");
@@ -175,11 +170,6 @@ public class HazelcastMemoryService implements MemoryService {
                 }
             }
         }
-    }
-
-    @Override
-    public void evictExpiredMembers() {
-        log.info("Eviction of expired members is meaningless for Hazelcast (so we are doing nothing)");
     }
 
     @Override
@@ -296,21 +286,6 @@ public class HazelcastMemoryService implements MemoryService {
         //noinspection ConstantConditions
         return first;
     }
-
-    // DEPRECATED METHODS BELOW
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public Cache newCache(String cacheName, CacheRefresher refresher, String pattern) {
-        return getCache(cacheName);
-    }
-
-    @Override
-    public Cache newCache(String cacheName, String pattern) {
-        log.warn("Creating pattern Cache("+cacheName+"), pattern is not supported in the distributed MemoryService implementation, the pattern update event entry removal will not happen!");
-        return getCache(cacheName);
-    }
-
 
     /**
      * @param cacheName the name of the cache

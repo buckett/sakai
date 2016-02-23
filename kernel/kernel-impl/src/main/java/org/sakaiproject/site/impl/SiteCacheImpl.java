@@ -78,8 +78,7 @@ public class SiteCacheImpl implements CacheEventListener, SiteCache {
 	// Modify constructor to allow injecting the server configuration service.
 	public SiteCacheImpl(MemoryService memoryService, long sleep, String pattern, ServerConfigurationService serverConfigurationService)
 	{
-		m_cache = memoryService.newCache(
-				"org.sakaiproject.site.impl.SiteCacheImpl.cache", pattern);
+		m_cache = memoryService.getCache("org.sakaiproject.site.impl.SiteCacheImpl.cache");
 
 		// Provide an instance of the server configuration service.
 		this.serverConfigurationService = serverConfigurationService;
