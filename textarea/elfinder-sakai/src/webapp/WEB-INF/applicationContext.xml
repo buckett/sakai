@@ -36,9 +36,16 @@
 							<property name="uiPermissionsManager" ref="org.sakaiproject.api.app.messageforums.ui.UIPermissionsManager"/>
 							<property name="userDirectoryService" ref="org.sakaiproject.user.api.UserDirectoryService"/>
 						</bean>
-					</set>
-				</property>
-			</bean>
-		</property>
-	</bean>
-</beans>
+
+
+						<bean class="org.sakaiproject.elfinder.sakai.samigo.SamSiteVolumeFactory">
+								<property name="publishedAssessmentService" ref="org.sakaiproject.tool.assessment.services.assessment.PublishedAssessmentService"/>
+
+                            </bean>
+
+                        </set>
+                    </property>
+                </bean>
+            </property>
+        </bean>
+    </beans>
