@@ -39,7 +39,9 @@
 
 
 						<bean class="org.sakaiproject.elfinder.sakai.samigo.SamSiteVolumeFactory">
-								<property name="publishedAssessmentService" ref="org.sakaiproject.tool.assessment.services.assessment.PublishedAssessmentService"/>
+								<property name="publishedAssessmentService" >
+									<bean class="org.sakaiproject.tool.assessment.services.assessment.PublishedAssessmentService"/>
+								</property>
 
                             </bean>
 
