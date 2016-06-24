@@ -12,6 +12,11 @@
         </property>
     </bean>
 
+    <bean id="org.sakaiproject.component.app.scheduler.AutowiringSpringBeanJobFactory"
+          class="org.sakaiproject.component.app.scheduler.AutowiringSpringBeanJobFactory">
+
+    </bean>
+
     <bean id="org.sakaiproject.api.app.scheduler.events.TriggerEventManager.wrapped"
           class="org.sakaiproject.component.app.scheduler.events.hibernate.TriggerEventManagerHibernateImpl">
         <property name="sessionFactory" ref="org.sakaiproject.springframework.orm.hibernate.GlobalSessionFactory"/>

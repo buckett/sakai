@@ -82,8 +82,7 @@ public class SchedulerManagerImpl implements SchedulerManager
   private String qrtzPropFile;
   /** The properties file from sakai.home */
   private String qrtzPropFileSakai;
-  private Properties qrtzProperties;
-  private TriggerListener globalTriggerListener;
+    private TriggerListener globalTriggerListener;
   private Boolean autoDdl;
   private boolean startScheduler = true;
   private Map<String, JobBeanWrapper> beanJobs = new Hashtable<String, JobBeanWrapper>();
@@ -94,8 +93,7 @@ public class SchedulerManagerImpl implements SchedulerManager
 
   // Service dependencies
   private ServerConfigurationService serverConfigurationService;
-  private SchedulerFactory schedFactory;
-  private Scheduler scheduler;
+    private Scheduler scheduler;
   private SqlService sqlService;
 
 
@@ -111,7 +109,7 @@ public void init()
   {
     try
     {
-      qrtzProperties = initQuartzConfiguration();
+        Properties qrtzProperties = initQuartzConfiguration();
 
       qrtzProperties.setProperty("org.quartz.scheduler.instanceId", serverId);
 
@@ -193,8 +191,9 @@ public void init()
 
 
       // start scheduler and load jobs
-      schedFactory = new StdSchedulerFactory(qrtzProperties);
+      SchedulerFactory schedFactory = new StdSchedulerFactory(qrtzProperties);
       scheduler = schedFactory.getScheduler();
+      scheduler.setJobFactory(jobsFactory);
 
       // loop through persisted jobs removing both the job and associated
       // triggers for jobs where the associated job class is not found

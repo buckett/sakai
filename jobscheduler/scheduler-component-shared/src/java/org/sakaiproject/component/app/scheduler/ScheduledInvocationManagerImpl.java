@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
+import org.quartz.impl.matchers.OrMatcher;
 import org.sakaiproject.component.app.scheduler.jobs.ScheduledInvocationJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,19 +17,31 @@ import org.sakaiproject.api.app.scheduler.SchedulerManager;
 import org.sakaiproject.id.api.IdManager;
 import org.sakaiproject.time.api.Time;
 
+/**
+ * componentId -> job key (name)
+ * opaqueContent/contextId -> trigger key (name)
+ *
+ * jobs have groups and triggers have groups.
+ * matching by quartz can be done on both of them and supports equals/startswith.
+ * possiblity to have another table that does the opaqueID to UUID mapping?
+ */
 public class ScheduledInvocationManagerImpl implements ScheduledInvocationManager {
 
 	private static final Logger LOG = LoggerFactory.getLogger(ScheduledInvocationManagerImpl.class);
 
 	public static final String GROUP_NAME = "org.sakaiproject.component.app.scheduler.jobs.ScheduledInvocationJob";
-	
+
+	/**
+	 * The key in the job data map that contains the opaque ID.
+	 */
+	public static final String CONTEXT_ID = "contextId";
+
 	/** Dependency: IdManager */
 	protected IdManager m_idManager = null;
 
 	public void setIdManager(IdManager service) {
 		m_idManager = service;
 	}
-
 
 	/** Dependency: SchedulerManager */
 	protected SchedulerManager m_schedulerManager = null;
@@ -37,32 +50,36 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 		m_schedulerManager = service;
 	}
 
-   public void destroy() {
-      LOG.info("destroy()");
-   }
+	public void init() {
+		LOG.info("init()");
+	}
+
+	public void destroy() {
+		LOG.info("destroy()");
+	}
 
 	/* (non-Javadoc)
-     * @see org.sakaiproject.api.app.scheduler.ScheduledInvocationManager#createDelayedInvocation(org.sakaiproject.time.api.Time, java.lang.String, java.lang.String)
-     */
+	 * @see org.sakaiproject.api.app.scheduler.ScheduledInvocationManager#createDelayedInvocation(org.sakaiproject.time.api.Time, java.lang.String, java.lang.String)
+	 */
 	public String createDelayedInvocation(Time time, String componentId, String opaqueContext) {
- 		try {
- 			String uuid = m_idManager.createUuid();
- 			Scheduler scheduler = m_schedulerManager.getScheduler();
+		try {
+			String uuid = m_idManager.createUuid();
+			Scheduler scheduler = m_schedulerManager.getScheduler();
 			JobKey key = new JobKey(componentId, GROUP_NAME);
- 			JobDetail detail = scheduler.getJobDetail(key);
- 			if (detail == null) {
+			JobDetail detail = scheduler.getJobDetail(key);
+			if (detail == null) {
 				detail = JobBuilder.newJob(ScheduledInvocationJob.class)
 						.withIdentity(componentId, GROUP_NAME)
 						.storeDurably()
 						.build();
- 				scheduler.addJob(detail, false);
- 			}
+				scheduler.addJob(detail, false);
+			}
 			// Non-repeating trigger.
 			Trigger trigger = TriggerBuilder.newTrigger()
 					.withIdentity(uuid, GROUP_NAME)
 					.startAt(new Date(time.getTime()))
 					.forJob(componentId, GROUP_NAME)
-					.usingJobData("contextId", opaqueContext)
+					.usingJobData(CONTEXT_ID, opaqueContext)
 					.build();
 			scheduler.scheduleJob(trigger);
 			LOG.info("Created new Delayed Invocation: uuid=" + uuid);
@@ -108,7 +125,7 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 				if (detail != null) {
 					List<? extends Trigger> triggers = scheduler.getTriggersOfJob(key);
 					for (Trigger trigger: triggers) {
-						String contextId = trigger.getJobDataMap().getString("contextId");
+						String contextId = trigger.getJobDataMap().getString(CONTEXT_ID);
 						if (opaqueContext.length() > 0 && !(opaqueContext.equals(contextId))) {
 							// If we're filtering by opaqueContent and it doesn't match skip.
 							continue;
@@ -128,7 +145,7 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 	 */
 	public DelayedInvocation[] findDelayedInvocations(String componentId, String opaqueContext) {
 		LOG.debug("componentId=" + componentId + ", opaqueContext=" + opaqueContext);
-		List<DelayedInvocation> invocations = new ArrayList<DelayedInvocation>();
+		List<DelayedInvocation> invocations = new ArrayList<>();
 		try {
 			Scheduler scheduler = m_schedulerManager.getScheduler();
 			Set<JobKey> jobKeys = scheduler.getJobKeys(GroupMatcher.groupEquals(GROUP_NAME));
@@ -141,7 +158,7 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 				if (detail != null) {
 					List<? extends Trigger> triggers = scheduler.getTriggersOfJob(jobKey);
 					for (Trigger trigger: triggers) {
-						String contextId = trigger.getJobDataMap().getString("contextId");
+						String contextId = trigger.getJobDataMap().getString(CONTEXT_ID);
 						if (opaqueContext.length() > 0 && !(opaqueContext.equals(contextId))) {
 							// If we're filtering by opaqueContent and it doesn't match skip.
 							continue;
