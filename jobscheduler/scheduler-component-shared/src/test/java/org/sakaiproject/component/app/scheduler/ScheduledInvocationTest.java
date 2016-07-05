@@ -97,4 +97,13 @@ public class ScheduledInvocationTest {
         Assert.assertNotEquals(first, second);
     }
 
+    @Test
+    public void testCreateMultipleContexts() {
+        Time time = Mockito.mock(Time.class);
+        Mockito.when(time.getTime()).thenReturn(0L);
+        String first = manager.createDelayedInvocation(time, COMPONENT_ID, CONTEXT + 1);
+        String second = manager.createDelayedInvocation(time, COMPONENT_ID, CONTEXT + 2);
+        Assert.assertNotEquals(first, second);
+    }
+
 }
