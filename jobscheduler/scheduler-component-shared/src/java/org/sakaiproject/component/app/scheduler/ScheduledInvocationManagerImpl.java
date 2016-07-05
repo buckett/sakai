@@ -8,12 +8,12 @@ import java.util.Set;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
 import org.quartz.impl.matchers.OrMatcher;
+import org.quartz.listeners.TriggerListenerSupport;
 import org.sakaiproject.component.app.scheduler.jobs.ScheduledInvocationJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sakaiproject.api.app.scheduler.DelayedInvocation;
 import org.sakaiproject.api.app.scheduler.ScheduledInvocationManager;
-import org.sakaiproject.api.app.scheduler.SchedulerManager;
 import org.sakaiproject.id.api.IdManager;
 import org.sakaiproject.time.api.Time;
 
@@ -43,20 +43,25 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 		m_idManager = service;
 	}
 
-	/** Dependency: SchedulerManager */
-	protected SchedulerManager m_schedulerManager = null;
+	/** Dependency: SchedulerFactory */
+	protected SchedulerFactory schedulerFactory = null;
 
-	public void setSchedulerManager(SchedulerManager service) {
-		m_schedulerManager = service;
+	public void setSchedulerFactory(SchedulerFactory schedulerFactory) {
+		this.schedulerFactory = schedulerFactory;
 	}
+
+	protected TriggerListener triggerListener;
 
 	public void init() {
 		LOG.info("init()");
+		triggerListener = new ContextTriggerListener("ContextTriggerListener");
+//		schedulerFactory.getGlobalTriggerListeners().add(triggerListener);
 	}
 
 	public void destroy() {
 		LOG.info("destroy()");
-	}
+//		schedulerFactory.getGlobalTriggerListeners().remove(triggerListener);
+}
 
 	/* (non-Javadoc)
 	 * @see org.sakaiproject.api.app.scheduler.ScheduledInvocationManager#createDelayedInvocation(org.sakaiproject.time.api.Time, java.lang.String, java.lang.String)
@@ -64,21 +69,27 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 	public String createDelayedInvocation(Time time, String componentId, String opaqueContext) {
 		try {
 			String uuid = m_idManager.createUuid();
-			Scheduler scheduler = m_schedulerManager.getScheduler();
+			Scheduler scheduler = schedulerFactory.getScheduler();
 			JobKey key = new JobKey(componentId, GROUP_NAME);
 			JobDetail detail = scheduler.getJobDetail(key);
 			if (detail == null) {
-				detail = JobBuilder.newJob(ScheduledInvocationJob.class)
-						.withIdentity(componentId, GROUP_NAME)
-						.storeDurably()
-						.build();
-				scheduler.addJob(detail, false);
+				try {
+					detail = JobBuilder.newJob(ScheduledInvocationJob.class)
+							.withIdentity(key)
+							.storeDurably()
+							.build();
+					scheduler.addJob(detail, false);
+				} catch (ObjectAlreadyExistsException se) {
+					// We can ignore this one as it means the job is already present. This should only happen
+					// due concurrent inserting of the job
+					LOG.debug("Failed to add job {} as it already exists ", key, se);
+				}
 			}
 			// Non-repeating trigger.
 			Trigger trigger = TriggerBuilder.newTrigger()
 					.withIdentity(uuid, GROUP_NAME)
 					.startAt(new Date(time.getTime()))
-					.forJob(componentId, GROUP_NAME)
+					.forJob(key)
 					.usingJobData(CONTEXT_ID, opaqueContext)
 					.build();
 			scheduler.scheduleJob(trigger);
@@ -99,9 +110,9 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 		LOG.debug("Removing Delayed Invocation: " + uuid);
 		try {
 			TriggerKey key = new TriggerKey(uuid, GROUP_NAME);
-			m_schedulerManager.getScheduler().unscheduleJob(key);
+			schedulerFactory.getScheduler().unscheduleJob(key);
 		} catch (SchedulerException e) {
-			LOG.error("Failed to remove Delayed Invocation: uuid="+ uuid);
+			LOG.error("Failed to remove Delayed Invocation: uuid="+ uuid, e);
 		}
 
 	}
@@ -113,17 +124,16 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 		LOG.debug("componentId=" + componentId + ", opaqueContext=" + opaqueContext);
 
 		try {
-			Scheduler scheduler = m_schedulerManager.getScheduler();
-			List<String> jobNames = scheduler.getJobGroupNames();
-			for (String jobName : jobNames) {
-				if (componentId.length() > 0 && !(jobName.equals(componentId))) {
+			Scheduler scheduler = schedulerFactory.getScheduler();
+			Set<JobKey> jobKeys = scheduler.getJobKeys(GroupMatcher.groupEquals(GROUP_NAME));
+			for (JobKey jobKey : jobKeys) {
+				if (componentId.length() > 0 && !(jobKey.getName().equals(componentId))) {
 					// If we're filtering by component Id and it doesn't match skip.
 					continue;
 				}
-				JobKey key = new JobKey(jobName, GROUP_NAME);
-				JobDetail detail = scheduler.getJobDetail(key);
+				JobDetail detail = scheduler.getJobDetail(jobKey);
 				if (detail != null) {
-					List<? extends Trigger> triggers = scheduler.getTriggersOfJob(key);
+					List<? extends Trigger> triggers = scheduler.getTriggersOfJob(jobKey);
 					for (Trigger trigger: triggers) {
 						String contextId = trigger.getJobDataMap().getString(CONTEXT_ID);
 						if (opaqueContext.length() > 0 && !(opaqueContext.equals(contextId))) {
@@ -131,12 +141,13 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 							continue;
 						}
 						// Unscehdule the trigger.
-						scheduler.unscheduleJob(trigger.getKey());
+						deleteDelayedInvocation(trigger.getKey().getName());
 					}
 				}
 			}
 		} catch (SchedulerException se) {
-			LOG.error("Failure while attempting to remove invocations matching: componentId=" + componentId + ", opaqueContext=" + opaqueContext, se);
+			LOG.error("Failure while attempting to delete invocations matching: componentId={}, opaqueContext={}",
+					opaqueContext, componentId, se);
 		}
 	}
 
@@ -147,7 +158,7 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 		LOG.debug("componentId=" + componentId + ", opaqueContext=" + opaqueContext);
 		List<DelayedInvocation> invocations = new ArrayList<>();
 		try {
-			Scheduler scheduler = m_schedulerManager.getScheduler();
+			Scheduler scheduler = schedulerFactory.getScheduler();
 			Set<JobKey> jobKeys = scheduler.getJobKeys(GroupMatcher.groupEquals(GROUP_NAME));
 			for (JobKey jobKey : jobKeys) {
 				if (componentId.length() > 0 && !(jobKey.getName().equals(componentId))) {
@@ -169,8 +180,41 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 				}
 			}
 		} catch (SchedulerException se) {
-			LOG.error("Failure while attempting to remove invocations matching: componentId=" + componentId + ", opaqueContext=" + opaqueContext, se);
+			LOG.error("Failure while attempting to find invocations matching: componentId={}, opaqueContext={}",
+					opaqueContext, componentId, se);
 		}
 		return invocations.toArray(new DelayedInvocation[]{});
+	}
+
+	/**
+	 * This is used to cleanup the aditional data after the trigger has fired.
+	 */
+	private class ContextTriggerListener extends TriggerListenerSupport {
+
+		ContextTriggerListener(String name) {
+			this.name = name;
+		}
+
+		private String name;
+
+		@Override
+		public String getName() {
+			return name;
+		}
+
+		public void triggerComplete(
+				Trigger trigger,
+				JobExecutionContext context,
+				Trigger.CompletedExecutionInstruction triggerInstructionCode) {
+			// Check it's one of ours
+			if (GROUP_NAME.equals(trigger.getKey().getGroup())) {
+				String contextId = trigger.getJobDataMap().getString(CONTEXT_ID);
+				if (contextId == null) {
+					LOG.warn("Once of our triggers ({}) didn't have a context ID", trigger.getKey());
+				} else {
+					// TODO Remove context ID to trigger mapping.
+				}
+			}
+		}
 	}
 }

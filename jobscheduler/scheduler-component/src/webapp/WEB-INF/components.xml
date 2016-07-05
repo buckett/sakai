@@ -10,11 +10,28 @@
                 <value>org/sakaiproject/scheduler/events/hibernate/TriggerEventHibernateImpl.hbm.xml</value>
             </list>
         </property>
+        <property name="additionalClasses">
+            <list>
+                <value>org.sakaiproject.scheduler.events.hibernate.ContextMapping</value>
+            </list>
+        </property>
     </bean>
 
+    <!-- This job bean factory attempts to autowire any jobs -->
     <bean id="org.sakaiproject.component.app.scheduler.AutowiringSpringBeanJobFactory"
           class="org.sakaiproject.component.app.scheduler.AutowiringSpringBeanJobFactory">
+    </bean>
 
+    <bean class="org.sakaiproject.component.app.scheduler.JobBeanWrapperRegistrar" init-method="init">
+        <property name="schedulerManager">
+            <ref bean="org.sakaiproject.api.app.scheduler.SchedulerManager"/>
+        </property>
+        <property name="jobBeans">
+            <bean class="org.sakaiproject.component.app.scheduler.AutowiredJobBeanWrapper">
+                <constructor-arg index="0" value="org.sakaiproject.component.app.scheduler.jobs.AutowiredTestJob"/>
+                <constructor-arg index="1" value="Test Autowired Job"/>
+            </bean>
+        </property>
     </bean>
 
     <bean id="org.sakaiproject.api.app.scheduler.events.TriggerEventManager.wrapped"
@@ -85,6 +102,9 @@
         </property>
         <property name="autoDdl">
           <value>${auto.ddl}</value>
+        </property>
+        <property name="jobFactory">
+            <ref bean="org.sakaiproject.component.app.scheduler.AutowiringSpringBeanJobFactory"/>
         </property>
         <property name="initialJobSchedules">
             <list>

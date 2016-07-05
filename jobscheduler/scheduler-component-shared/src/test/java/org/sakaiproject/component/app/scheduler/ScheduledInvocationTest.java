@@ -33,14 +33,10 @@ public class ScheduledInvocationTest {
         scheduler.start();
         Assert.assertNotNull(scheduler);
 
-        SchedulerManager schedulerManager = Mockito.mock(SchedulerManager.class);
-        Mockito.when(schedulerManager.getScheduler()).thenReturn(scheduler);
 
         manager = new ScheduledInvocationManagerImpl();
-        manager.setIdManager(() -> {
-            return UUID.randomUUID().toString();
-        });
-        manager.setSchedulerManager(schedulerManager);
+        manager.setIdManager(() -> UUID.randomUUID().toString());
+        manager.setSchedulerFactory(schedulerFactory);
     }
 
     @After
