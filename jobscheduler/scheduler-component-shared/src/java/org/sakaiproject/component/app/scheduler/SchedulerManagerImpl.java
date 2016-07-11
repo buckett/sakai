@@ -27,15 +27,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.Collections;
-import java.util.Hashtable;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 
 import javax.sql.DataSource;
 
@@ -68,6 +60,7 @@ import org.sakaiproject.component.app.scheduler.jobs.SpringConfigurableJobBeanWr
 import org.sakaiproject.component.app.scheduler.jobs.SpringInitialJobSchedule;
 import org.sakaiproject.component.app.scheduler.jobs.SpringJobBeanWrapper;
 import org.sakaiproject.db.api.SqlService;
+import org.springframework.beans.factory.annotation.Autowired;
 
 public class SchedulerManagerImpl implements SchedulerManager, SchedulerFactory
 {

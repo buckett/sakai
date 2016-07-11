@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
+import org.hibernate.SessionFactory;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
 import org.quartz.impl.matchers.OrMatcher;
@@ -50,6 +51,8 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 		this.schedulerFactory = schedulerFactory;
 	}
 
+	private SessionFactory sessionFactory;
+
 	protected TriggerListener triggerListener;
 
 	public void init() {
@@ -93,6 +96,7 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 					.usingJobData(CONTEXT_ID, opaqueContext)
 					.build();
 			scheduler.scheduleJob(trigger);
+			sessionFactory.getCurrentSession().doWork();
 			LOG.info("Created new Delayed Invocation: uuid=" + uuid);
 			return uuid;
 		} catch (SchedulerException se) {
