@@ -5,6 +5,7 @@ import org.sakaiproject.api.app.scheduler.JobBeanWrapper;
 
 /**
  * This is a JobBeanWrapper that will just be registered with the Job Scheduler.
+ * This class isn't actually used when running the job as quartz will directly create an instance of the class.
  */
 public class AutowiredJobBeanWrapper  implements JobBeanWrapper {
 

@@ -15,4 +15,20 @@ public class ContextMapping {
 
     // This is the context ID (opaque ID) passed when the job was created.
     private String contextId;
+
+    public String getContextId() {
+        return contextId;
+    }
+
+    public void setContextId(String contextId) {
+        this.contextId = contextId;
+    }
+
+    public String getUuid() {
+        return uuid;
+    }
+
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
+    }
 }

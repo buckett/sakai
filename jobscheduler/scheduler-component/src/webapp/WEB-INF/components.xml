@@ -17,7 +17,9 @@
         </property>
     </bean>
 
-    <!-- This job bean factory attempts to autowire any jobs -->
+    <!-- This job bean factory attempts to autowire any jobs that the quartz scheduler creates, this means that
+         the job can be an ordinary Java class, rather than a special Job that looks up the spring bean in the
+         component manager. -->
     <bean id="org.sakaiproject.component.app.scheduler.AutowiringSpringBeanJobFactory"
           class="org.sakaiproject.component.app.scheduler.AutowiringSpringBeanJobFactory">
     </bean>

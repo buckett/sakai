@@ -65,7 +65,6 @@ public class GlobalTriggerListener implements TriggerListener
   
   public void triggerFired(Trigger trigger, JobExecutionContext jobExecutionContext)
   {
-	  
       eventManager.createTriggerEvent (TriggerEvent.TRIGGER_EVENT_TYPE.FIRED, jobExecutionContext.getJobDetail().getKey(), trigger.getKey(), new Date(), "Trigger fired", getServerId());
   }
 

@@ -8,7 +8,6 @@ import java.util.Set;
 import org.hibernate.SessionFactory;
 import org.quartz.*;
 import org.quartz.impl.matchers.GroupMatcher;
-import org.quartz.impl.matchers.OrMatcher;
 import org.quartz.listeners.TriggerListenerSupport;
 import org.sakaiproject.component.app.scheduler.jobs.ScheduledInvocationJob;
 import org.slf4j.Logger;
@@ -53,6 +52,12 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 
 	private SessionFactory sessionFactory;
 
+	private ContextMapingDAO dao;
+
+	public void setDao(ContextMapingDAO dao) {
+		this.dao = dao;
+	}
+
 	protected TriggerListener triggerListener;
 
 	public void init() {
@@ -96,7 +101,6 @@ public class ScheduledInvocationManagerImpl implements ScheduledInvocationManage
 					.usingJobData(CONTEXT_ID, opaqueContext)
 					.build();
 			scheduler.scheduleJob(trigger);
-			sessionFactory.getCurrentSession().doWork();
 			LOG.info("Created new Delayed Invocation: uuid=" + uuid);
 			return uuid;
 		} catch (SchedulerException se) {
