@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+    <bean id="urlMapping" class="org.springframework.web.servlet.handler.SimpleUrlHandlerMapping">
+        <property name="mappings">
+            <props>
+                <prop key="/*">aliasesAction</prop>
+            </props>
+        </property>
+        <!-- This is so that we only use this if other handlers don't match this allows Spring MVC handlers
+             to take other URLs and us to fallback to the old tool. -->
+        <property name="order" value="10"/>
+    </bean>
+
+    <bean id="aliasesAction" class="org.springframework.web.servlet.mvc.ServletForwardingController">
+        <property name="servletName"><value>sakai.aliases.velocity</value></property>
+    </bean>
+
+    <bean id="velocityConfig" class="org.springframework.web.servlet.view.velocity.VelocityConfigurer">
+        <property name="resourceLoaderPath" value="/WEB-INF/" />
+        <property name="configLocation" value="velocity.properties"/>
+    </bean>
+
+    <bean class="org.springframework.web.servlet.view.velocity.VelocityViewResolver">
+        <property name="prefix" value="/vm/admin/"/>
+        <property name="suffix" value=".vm"/>
+    </bean>
+
+    <context:component-scan base-package="org.sakaiproject.alias.tool"/>
+
+
+</beans>
