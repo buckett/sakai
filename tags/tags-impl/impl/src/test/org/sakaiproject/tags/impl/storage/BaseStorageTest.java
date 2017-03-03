@@ -30,9 +30,6 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.internal.hamcrest.HamcrestArgumentMatcher;
 import org.mockito.internal.matchers.Or;
-import org.sakaiproject.db.impl.BasicSqlServiceSqlHSql;
-import org.sakaiproject.db.impl.SqlServiceSql;
-import org.sakaiproject.db.impl.SqlServiceTest;
 import org.sakaiproject.event.api.EventTrackingService;
 import org.sakaiproject.tags.api.MissingUuidException;
 import org.sakaiproject.tags.api.Tag;
@@ -47,8 +44,6 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -65,9 +60,6 @@ public abstract class BaseStorageTest {
     protected TagCollectionStorage tagCollectionStorage;
     protected TagStorage tagStorage;
 
-    // we actually want to test database interactions, so SqlService and DB are not mocks
-    // (though we do add some custom hooks to DB (see setUp())
-    protected SqlServiceTest sqlService;
     protected DB db;
 
     @Mock
@@ -98,13 +90,6 @@ public abstract class BaseStorageTest {
         MockitoAnnotations.initMocks(this);
         hsqldb = new EmbeddedDatabaseBuilder().addScripts("db/migration/hsqldb.sql").build();
 
-        sqlService = new SqlServiceTest();
-        sqlService.setDefaultDataSource(hsqldb);
-        final Map<String, SqlServiceSql> databaseBeans = new HashMap<>();
-        databaseBeans.put("hsqldb", new BasicSqlServiceSqlHSql());
-        sqlService.setDatabaseBeans(databaseBeans);
-        sqlService.init();
-
         db = new DB() {
             @Override
             protected DBConnection wrapConnection(Connection conn) {
@@ -115,7 +100,8 @@ public abstract class BaseStorageTest {
                 }
             }
         };
-        db.setSqlService(sqlService);
+        db.setDataSource(hsqldb);
+        db.setVendor("hsqldb");
 
         tagCollectionStorage = new TagCollectionStorage();
         tagCollectionStorage.setDb(db);
@@ -136,9 +122,6 @@ public abstract class BaseStorageTest {
 
     @After
     public void tearDown() {
-        if ( sqlService != null ) {
-            sqlService.destroy();
-        }
         if ( hsqldb != null ) {
             hsqldb.shutdown();
         }

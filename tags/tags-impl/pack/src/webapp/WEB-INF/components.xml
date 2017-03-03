@@ -27,7 +27,8 @@
     </bean>
 
     <bean id="org.sakaiproject.tags.impl.common.DB" class="org.sakaiproject.tags.impl.common.DB">
-        <property name="sqlService"><ref bean="org.sakaiproject.db.api.SqlService"/></property>
+        <property name="dataSource"><ref bean="javax.sql.DataSource"/></property>
+        <property name="vendor" value="#{org.sakaiproject.db.api.SqlService.getVendor()}"/>
     </bean>
 
     <bean parent="org.sakaiproject.entitybroker.entityprovider.AbstractEntityProvider"

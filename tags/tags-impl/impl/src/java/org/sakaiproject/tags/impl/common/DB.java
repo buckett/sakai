@@ -30,13 +30,17 @@ import org.sakaiproject.db.api.SqlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.sql.ConnectionPoolDataSource;
+import javax.sql.DataSource;
+
 /**
  * Logic for borrowing and returning DB connections.
  */
 public class DB {
 
     private static final Logger LOG = LoggerFactory.getLogger(DB.class);
-    private SqlService sqlService = null;
+    private DataSource dataSource;
+    private String vendor;
 
     /**
      * Run some database queries within a transaction.
@@ -69,7 +73,7 @@ public class DB {
                 if (autocommit) {
                     db.setAutoCommit(true);
                 }
-                sqlService.returnConnection(db);
+                db.close();
             }
 
         } catch (SQLException e) {
@@ -78,18 +82,22 @@ public class DB {
     }
 
     protected Connection borrowConnection() throws SQLException {
-        return sqlService.borrowConnection();
+        return dataSource.getConnection();
     }
 
     protected DBConnection wrapConnection(Connection conn) {
         return new DBConnection(conn);
     }
 
-    public void setSqlService(SqlService sqlService) {
-        this.sqlService = sqlService;
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    public void setVendor(String vendor) {
+        this.vendor = vendor;
     }
 
     public String getVendor() {
-        return sqlService.getVendor();
+        return vendor;
     }
 }
