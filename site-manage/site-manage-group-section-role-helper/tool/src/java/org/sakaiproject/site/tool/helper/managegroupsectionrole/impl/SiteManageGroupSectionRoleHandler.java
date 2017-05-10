@@ -1649,7 +1649,6 @@ public class SiteManageGroupSectionRoleHandler {
 		}
 
     		try {
-    			siteService.saveGroupMembership(site);
     			siteService.save(site);
     		} catch (IdUnusedException | PermissionException e) {
             	M_log.error("processImportedGroups failed for site: " + site.getId(), e);
