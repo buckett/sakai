@@ -126,6 +126,7 @@ public class EventRegistryServiceImpl implements EventRegistry, EventRegistrySer
 			toolEventIds.addAll(getEventIdToolMap().keySet());
 			// Add on the presence events if we're interested.
 			toolEventIds.add(StatsManager.SITEVISIT_EVENTID);
+			// This is the circular dependency.
 			if(M_sm.isEnableSitePresences()) {
 				toolEventIds.add(StatsManager.SITEVISITEND_EVENTID);
 			}
