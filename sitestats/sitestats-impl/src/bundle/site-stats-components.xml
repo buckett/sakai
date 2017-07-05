@@ -103,9 +103,11 @@
 		
 		<!-- Server Event Registry -->
 		<property name="serverEventIds" ref="org.sakaiproject.sitestats.api.serverevents.List" />
-		
+
+		<!-- This is the internal dependency that shouldn't be there -->
+		<!--<property name="statsManager" ref="org.sakaiproject.sitestats.api.StatsManager"/>-->
+
 		<!-- Sakai services -->
-		<property name="statsManager" ref="org.sakaiproject.sitestats.api.StatsManager"/>
 		<property name="siteService" ref="org.sakaiproject.site.api.SiteService"/>
 		<property name="toolManager" ref="org.sakaiproject.tool.api.ToolManager"/>
 		<property name="memoryService" ref="org.sakaiproject.memory.api.MemoryService" />   
