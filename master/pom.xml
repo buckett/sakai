@@ -190,7 +190,7 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.5</version>
+            <version>1.6</version>
             <executions>
               <execution>
                 <id>sign-artifacts</id>
@@ -200,12 +200,6 @@
                 </goals>
               </execution>
             </executions>
-              <configuration>
-                <gpgArguments>
-                  <!-- This is needed to stop gpg blowing up in post-build steps with no tty -->
-                  <arg>--no-tty</arg>
-                </gpgArguments>
-              </configuration>
           </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
