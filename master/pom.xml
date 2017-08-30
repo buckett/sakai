@@ -200,6 +200,12 @@
                 </goals>
               </execution>
             </executions>
+              <configuration>
+                <gpgArguments>
+                  <!-- This is needed to stop gpg blowing up in post-build steps with no tty -->
+                  <arg>--no-tty</arg>
+                </gpgArguments>
+              </configuration>
           </plugin>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
