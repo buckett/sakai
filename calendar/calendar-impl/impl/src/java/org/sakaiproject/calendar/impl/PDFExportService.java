@@ -25,6 +25,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.URIResolver;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXResult;
 import javax.xml.transform.stream.StreamSource;
@@ -120,10 +121,12 @@ public class PDFExportService {
     private TransformerFactory transformerFactory;
     private ResourceLoader rb;
 
-    public PDFExportService(TimeService timeService, TransformerFactory transformerFactory, ResourceLoader rb) {
+    public PDFExportService(TimeService timeService, ResourceLoader rb) {
         this.timeService = timeService;
-        this.transformerFactory = transformerFactory;
         this.rb = rb;
+
+        transformerFactory = TransformerFactory.newInstance();
+        transformerFactory.setURIResolver( new MyURIResolver(getClass().getClassLoader()) );
     }
 
     /**
@@ -1524,13 +1527,42 @@ public class PDFExportService {
         return Integer.toString(timeBreakdown.getDay());
     }
 
-
-
     protected String getEventDescription(String type){
         if ((type!=null) && (type.trim()!="")){
             return CalendarEventType.getLocalizedLegendFromEventType(type);
         }else{
             return CalendarEventType.getLocalizedLegendFromEventType("Activity");
+        }
+    }
+
+    /**
+     ** Internal class for resolving stylesheet URIs
+     **/
+    protected class MyURIResolver implements URIResolver
+    {
+        ClassLoader classLoader = null;
+
+        /**
+         ** Constructor: use BaseCalendarService ClassLoader
+         **/
+        public MyURIResolver( ClassLoader classLoader )
+        {
+            this.classLoader = classLoader;
+        }
+
+        /**
+         ** Resolve XSLT pathnames invoked within stylesheet (e.g. xsl:import)
+         ** using ClassLoader.
+         **
+         ** @param href href attribute of XSLT file
+         ** @param base base URI in affect when href attribute encountered
+         ** @return Source object for requested XSLT file
+         **/
+        public Source resolve( String href, String base )
+                throws TransformerException
+        {
+            InputStream in = classLoader.getResourceAsStream(href);
+            return (Source)(new StreamSource(in));
         }
     }
 }

@@ -118,8 +118,6 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 	/** SAK-29003 Google needs .ics at end of URL **/
 	public static final String ICAL_EXTENSION = ".ics";
 
-	private TransformerFactory transformerFactory = null;
-   
    private DocumentBuilder docBuilder = null;
    
    private ResourceLoader rb = new ResourceLoader("calendar");
@@ -668,9 +666,6 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 			m_storage = newStorage();
 			m_storage.open();
 
-         // create transformerFactory object needed by generatePDF
-         transformerFactory = TransformerFactory.newInstance();
-         transformerFactory.setURIResolver( new MyURIResolver(getClass().getClassLoader()) );
 
 			// create DocumentBuilder object needed by printSchedule
 			docBuilder =  DocumentBuilderFactory.newInstance().newDocumentBuilder();
@@ -704,7 +699,7 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 		cache = this.m_memoryService.createCache("org.sakaiproject.calendar.cache", cacheConfig);
 
 		m_eventTrackingService.addObserver(this);
-		pdfExportService = new PDFExportService(m_timeService, transformerFactory, rb);
+		pdfExportService = new PDFExportService(m_timeService, rb);
 	}
 
 	/**
@@ -5488,36 +5483,7 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 	}
 
    
-   /**
-    ** Internal class for resolving stylesheet URIs
-    **/
-   protected class MyURIResolver implements URIResolver
-   {
-      ClassLoader classLoader = null;
-      
-      /**
-       ** Constructor: use BaseCalendarService ClassLoader
-       **/
-      public MyURIResolver( ClassLoader classLoader )
-      {
-         this.classLoader = classLoader;
-      }
-      
-      /**
-       ** Resolve XSLT pathnames invoked within stylesheet (e.g. xsl:import)
-       ** using ClassLoader.
-       **
-       ** @param href href attribute of XSLT file
-       ** @param base base URI in affect when href attribute encountered
-       ** @return Source object for requested XSLT file
-       **/
-      public Source resolve( String href, String base )
-         throws TransformerException
-      {
-         InputStream in = classLoader.getResourceAsStream(href);
-         return (Source)(new StreamSource(in));
-      }
-   }
+
    
    
    /**
