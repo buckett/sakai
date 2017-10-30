@@ -34,6 +34,7 @@ import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -110,6 +111,16 @@ public class PDFExportService {
 
     protected static final long MINIMUM_EVENT_LENGTH_IN_MSECONDS = (29 * MILLISECONDS_IN_MINUTE);
 
+    // XSL File Names
+    protected final static String DAY_VIEW_XSLT_FILENAME = "schedule.xsl";
+
+    protected final static String LIST_VIEW_XSLT_FILENAME = "schlist.xsl";
+
+    protected final static String MONTH_VIEW_XSLT_FILENAME = "schedulemm.xsl";
+
+    protected final static String WEEK_VIEW_XSLT_FILENAME = "schedule.xsl";
+
+
     // Misc.
     protected static final String HOUR_MINUTE_SEPARATOR = ":";
 
@@ -163,8 +174,8 @@ public class PDFExportService {
 
             Source src = new DOMSource(doc);
 
-            java.util.Calendar c = java.util.Calendar.getInstance(timeService.getLocalTimeZone(), new ResourceLoader().getLocale());
-            CalendarUtil calUtil = new CalendarUtil(c);
+            java.util.Calendar c = java.util.Calendar.getInstance(timeService.getLocalTimeZone(), rb.getLocale());
+            CalendarUtil calUtil = new CalendarUtil(c, rb);
             String[] dayNames = calUtil.getCalendarDaysOfWeekNames(true);
             String[] monthNames = calUtil.getCalendarMonthNames(true);
 
@@ -297,7 +308,7 @@ public class PDFExportService {
             //
             if (scheduleType == CalendarService.MONTH_VIEW)
             {
-                CalendarUtil monthCalendar = new CalendarUtil();
+                CalendarUtil monthCalendar = new CalendarUtil(rb);
 
                 // Use the middle of the month since the start/end ranges
                 // may be in an adjacent month.
@@ -351,8 +362,8 @@ public class PDFExportService {
                 eventList.setAttribute(MAX_CONCURRENT_EVENTS_NAME, Integer.toString(maxConcurrentEventsOverListNode));
 
                 // Calculate the day of the week.
-                java.util.Calendar c = java.util.Calendar.getInstance(timeService.getLocalTimeZone(),new ResourceLoader().getLocale());
-                CalendarUtil cal = new CalendarUtil(c);
+                java.util.Calendar c = java.util.Calendar.getInstance(timeService.getLocalTimeZone(), rb.getLocale());
+                CalendarUtil cal = new CalendarUtil(c, rb);
 
                 Time date = currentTimeRange.firstTime();
                 TimeBreakdown breakdown = date.breakdownLocal();
@@ -628,7 +639,8 @@ public class PDFExportService {
 
         TimeBreakdown somewhereInTheMonthBreakdown = somewhereInTheMonthTime.breakdownLocal();
 
-        CalendarUtil calendar = new CalendarUtil();
+
+        CalendarUtil calendar = new CalendarUtil(rb);
 
         calendar.setDay(somewhereInTheMonthBreakdown.getYear(), somewhereInTheMonthBreakdown.getMonth(),
                 somewhereInTheMonthBreakdown.getDay());
@@ -1564,5 +1576,40 @@ public class PDFExportService {
             InputStream in = classLoader.getResourceAsStream(href);
             return (Source)(new StreamSource(in));
         }
+    }
+
+
+    /**
+     * Given a schedule type, the appropriate XSLT file is returned
+     */
+    protected String getXSLFileNameForScheduleType(int scheduleType)
+    {
+        // get a relative path to the file
+        String baseFileName = "";
+
+        switch (scheduleType)
+        {
+            case BaseCalendarService.WEEK_VIEW:
+                baseFileName = WEEK_VIEW_XSLT_FILENAME;
+                break;
+
+            case BaseCalendarService.DAY_VIEW:
+                baseFileName = DAY_VIEW_XSLT_FILENAME;
+                break;
+
+            case BaseCalendarService.MONTH_VIEW:
+                baseFileName = MONTH_VIEW_XSLT_FILENAME;
+                break;
+
+            case BaseCalendarService.LIST_VIEW:
+                baseFileName = LIST_VIEW_XSLT_FILENAME;
+                break;
+
+            default:
+                log.debug("PrintFileGeneration.getXSLFileNameForScheduleType(): unexpected scehdule type = " + scheduleType);
+                break;
+        }
+
+        return baseFileName;
     }
 }

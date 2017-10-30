@@ -5137,14 +5137,6 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 	 * PDF file generation
 	 *********************************************************************************************************************************************************************************************************************************************************/
 
-	// XSL File Names
-	protected final static String DAY_VIEW_XSLT_FILENAME = "schedule.xsl";
-
-	protected final static String LIST_VIEW_XSLT_FILENAME = "schlist.xsl";
-
-	protected final static String MONTH_VIEW_XSLT_FILENAME = "schedulemm.xsl";
-
-	protected final static String WEEK_VIEW_XSLT_FILENAME = "schedule.xsl";
 
 
 	// Mime Types
@@ -5352,39 +5344,6 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 		return timeRange;
 	}
 
-	/**
-	 * Given a schedule type, the appropriate XSLT file is returned
-	 */
-	protected String getXSLFileNameForScheduleType(int scheduleType)
-	{
-		// get a relative path to the file
-		String baseFileName = "";
-
-		switch (scheduleType)
-		{
-			case WEEK_VIEW:
-				baseFileName = WEEK_VIEW_XSLT_FILENAME;
-				break;
-
-			case DAY_VIEW:
-				baseFileName = DAY_VIEW_XSLT_FILENAME;
-				break;
-
-			case MONTH_VIEW:
-				baseFileName = MONTH_VIEW_XSLT_FILENAME;
-				break;
-
-			case LIST_VIEW:
-				baseFileName = LIST_VIEW_XSLT_FILENAME;
-				break;
-
-			default:
-				M_log.debug("PrintFileGeneration.getXSLFileNameForScheduleType(): unexpected scehdule type = " + scheduleType);
-				break;
-		}
-
-		return baseFileName;
-	}
 
 
 
@@ -5479,7 +5438,7 @@ public abstract class BaseCalendarService implements CalendarService, DoubleStor
 		pdfExportService.generateXMLDocument(scheduleType, document, timeRange, getDailyStartTimeFromParameters(parameters),
 				calendarReferenceList, userName, this);
 
-		pdfExportService.generatePDF(document, getXSLFileNameForScheduleType(scheduleType), os);
+		pdfExportService.generatePDF(document, pdfExportService.getXSLFileNameForScheduleType(scheduleType), os);
 	}
 
    
